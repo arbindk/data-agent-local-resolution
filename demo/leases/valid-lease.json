@@ -1,0 +1,10 @@
+{
+  "lease_id": "lease-001",
+  "job_id": "job-001",
+  "data_store_id": "blob-finance-prod",
+  "compiled_policy_version": "cpv-2026.05.29.001",
+  "compiled_git_tag": "compiled/cpv-2026.05.29.001",
+  "compiled_git_commit": "",
+  "compiled_artifact_hash": sha256:f5050ea952b39dc72b250d02b2c16f36a32b1e45da63f368cde0096444d8e73b,
+  "allow_last_known_good": true
+}

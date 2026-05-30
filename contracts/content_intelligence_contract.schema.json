@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ContentIntelligenceContract",
+  "type": "object",
+  "properties": {
+    "request": {
+      "type": "object",
+      "required": ["batch_id", "file_ids", "entities_of_interest", "processing_tier"],
+      "properties": {
+        "batch_id": {"type": "string"},
+        "file_ids": {"type": "array", "items": {"type": "string"}},
+        "entities_of_interest": {"type": "array", "items": {"type": "string"}},
+        "processing_tier": {"type": "string"},
+        "depth": {"type": "string"}
+      }
+    },
+    "response": {
+      "type": "object",
+      "required": ["batch_id", "entity_results", "signals"],
+      "properties": {
+        "batch_id": {"type": "string"},
+        "entity_results": {"type": "array", "items": {"type": "object"}},
+        "signals": {"type": "array", "items": {"type": "object"}},
+        "partial_failures": {"type": "array", "items": {"type": "object"}}
+      }
+    }
+  }
+}

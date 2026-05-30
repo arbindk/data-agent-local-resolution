@@ -1,0 +1,20 @@
+{
+  "execution_id": "exec-001",
+  "lease_id": "lease-001",
+  "data_store_id": "blob-finance-prod",
+  "compiled_policy_version": "cpv-001",
+  "compiled_git_tag": "compiled/cpv-001",
+  "compiled_git_commit": "",
+  "compiled_artifact_hash": "sha256:TO_BE_FILLED_AFTER_SEED",
+  "workflow_version": "workflow-mvs-linear-v1",
+  "workflow_git_ref": "workflows/workflow-mvs-linear-v1.json",
+  "processing_tier": "tier2",
+  "processing_mode": "standard",
+  "configuration": {
+    "batch_size": 3,
+    "max_content_items": 2,
+    "indexing_mode": "signals",
+    "allow_last_known_good": true,
+    "guardian_required_for_actions": true
+  }
+}

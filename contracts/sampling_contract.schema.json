@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "SamplingRequestResponse",
+  "type": "object",
+  "properties": {
+    "request": {
+      "type": "object",
+      "required": ["batch_id", "processing_tier", "entities_of_interest"],
+      "properties": {
+        "batch_id": {"type": "string"},
+        "processing_tier": {"type": "string"},
+        "entities_of_interest": {"type": "array", "items": {"type": "string"}},
+        "aggressiveness": {"type": "string"}
+      }
+    },
+    "response": {
+      "type": "object",
+      "required": ["batch_id", "selected_file_ids", "risk_scores"],
+      "properties": {
+        "batch_id": {"type": "string"},
+        "selected_file_ids": {"type": "array", "items": {"type": "string"}},
+        "risk_scores": {"type": "object"}
+      }
+    }
+  }
+}

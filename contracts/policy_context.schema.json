@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Item 13 PolicyContext",
+  "type": "object",
+  "required": ["data_store_id", "compiled_policy_version", "entities_of_interest", "signature_verified", "artifact_hash_verified", "local_execution_confirmed"],
+  "properties": {
+    "data_store_id": {"type": "string"},
+    "compiled_policy_version": {"type": "string"},
+    "source_policy_id": {"type": "string"},
+    "source_policy_version": {"type": "string"},
+    "artifact_hash": {"type": "string"},
+    "signature_verified": {"type": "boolean"},
+    "artifact_hash_verified": {"type": "boolean"},
+    "entities_of_interest": {
+      "type": "object",
+      "properties": {
+        "entity_types": {"type": "array", "items": {"type": "string"}},
+        "keyword_groups": {"type": "array", "items": {"type": "object"}},
+        "regex_groups": {"type": "array", "items": {"type": "object"}}
+      }
+    },
+    "sovereignty_rules": {"type": "array", "items": {"type": "object"}},
+    "activation_source": {"type": "string", "enum": ["local_git", "cache", "last_known_good"]},
+    "fallback_used": {"type": "boolean"},
+    "local_execution_confirmed": {"type": "boolean"}
+  },
+  "additionalProperties": true
+}

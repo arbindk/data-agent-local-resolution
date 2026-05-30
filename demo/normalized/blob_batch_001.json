@@ -1,0 +1,9 @@
+{
+  "batch_id": "batch-001",
+  "data_store_id": "blob-finance-prod",
+  "records": [
+    {"file_id": "file-001", "path": "finance/payroll/employees.csv", "name": "employees.csv", "size_bytes": 2048, "last_modified": "2026-05-28T10:00:00Z", "last_accessed": null, "content_type": "text/csv", "extension": "csv", "processing_mode": "standard", "policy_version": "cpv-001", "source_system": "azure_blob", "permission_class": "limited_internal", "permission_risk_score": 20, "dd_protection_flags": 0},
+    {"file_id": "file-002", "path": "finance/bank_accounts.xlsx", "name": "bank_accounts.xlsx", "size_bytes": 4096, "last_modified": "2026-05-20T10:00:00Z", "last_accessed": null, "content_type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "extension": "xlsx", "processing_mode": "standard", "policy_version": "cpv-001", "source_system": "azure_blob", "permission_class": "broad_internal", "permission_risk_score": 78, "dd_protection_flags": 0},
+    {"file_id": "file-003", "path": "public/readme.txt", "name": "readme.txt", "size_bytes": 512, "last_modified": "2026-05-01T10:00:00Z", "last_accessed": null, "content_type": "text/plain", "extension": "txt", "processing_mode": "standard", "policy_version": "cpv-001", "source_system": "azure_blob", "permission_class": "external", "permission_risk_score": 85, "dd_protection_flags": 0}
+  ]
+}

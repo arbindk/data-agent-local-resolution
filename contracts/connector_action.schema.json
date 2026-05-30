@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ConnectorAction",
+  "type": "object",
+  "required": ["action_id", "file_id", "action_type", "guardian_decision_id"],
+  "properties": {
+    "action_id": {"type": "string"},
+    "file_id": {"type": "string"},
+    "action_type": {"type": "string", "enum": ["apply_tag", "apply_dd_protection_flags", "apply_sensitivity_label", "quarantine", "archive", "delete_dry_run"]},
+    "guardian_decision_id": {"type": "string"},
+    "parameters": {"type": "object"},
+    "idempotency_key": {"type": "string"}
+  },
+  "additionalProperties": true
+}

@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "NormalizedBatch",
+  "type": "object",
+  "required": ["batch_id", "data_store_id", "records"],
+  "properties": {
+    "batch_id": {"type": "string"},
+    "data_store_id": {"type": "string"},
+    "records": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["file_id", "path", "size_bytes", "content_type", "extension", "processing_mode", "policy_version", "source_system"],
+        "properties": {
+          "file_id": {"type": "string"},
+          "path": {"type": "string"},
+          "name": {"type": "string"},
+          "size_bytes": {"type": "integer"},
+          "last_modified": {"type": "string"},
+          "last_accessed": {"type": ["string", "null"]},
+          "content_type": {"type": "string"},
+          "extension": {"type": "string"},
+          "processing_mode": {"type": "string"},
+          "policy_version": {"type": "string"},
+          "source_system": {"type": "string"},
+          "permission_class": {"type": "string"},
+          "permission_risk_score": {"type": "integer"},
+          "dd_protection_flags": {"type": "integer"}
+        },
+        "additionalProperties": true
+      }
+    }
+  },
+  "additionalProperties": false
+}
