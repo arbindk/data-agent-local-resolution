@@ -35,6 +35,9 @@ func (s *Server) Routes() http.Handler {
 	mux.HandleFunc("/v1/execution/", s.executionByID)
 	mux.HandleFunc("/v1/cache/status", s.cacheStatus)
 
+	mux.HandleFunc("/v1/demo/default-request", s.defaultDemoRequest)
+	mux.Handle("/", http.FileServer(http.Dir("web")))
+
 	return mux
 }
 
@@ -43,6 +46,21 @@ func (s *Server) health(w http.ResponseWriter, r *http.Request) {
 		"status":  "ok",
 		"service": "data-agent-local-resolution",
 	})
+}
+
+func (s *Server) defaultDemoRequest(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		writeJSON(w, http.StatusMethodNotAllowed, map[string]string{"error": "method not allowed"})
+		return
+	}
+
+	req, err := loadDefaultExecutionRequest()
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
+		return
+	}
+
+	writeJSON(w, http.StatusOK, req)
 }
 
 func (s *Server) resolvePolicy(w http.ResponseWriter, r *http.Request) {

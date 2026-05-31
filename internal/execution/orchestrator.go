@@ -13,14 +13,16 @@ import (
 )
 
 type Orchestrator struct {
-	manager        *Manager
-	policyResolver *policyresolver.Resolver
+	manager          *Manager
+	policyResolver   *policyresolver.Resolver
+	workflowResolver *WorkflowResolver
 }
 
-func NewOrchestrator(manager *Manager, policyResolver *policyresolver.Resolver) *Orchestrator {
+func NewOrchestrator(manager *Manager, policyResolver *policyresolver.Resolver, workflowResolver *WorkflowResolver) *Orchestrator {
 	return &Orchestrator{
-		manager:        manager,
-		policyResolver: policyResolver,
+		manager:          manager,
+		policyResolver:   policyResolver,
+		workflowResolver: workflowResolver,
 	}
 }
 
@@ -71,15 +73,16 @@ func (o *Orchestrator) Start(ctx context.Context, req ExecutionStartRequest) (*E
 
 	status.PolicyResolved = true
 
-	workflowResolved := o.resolveWorkflow(req.Lease.WorkflowVersion)
-	status.WorkflowResolved = workflowResolved
-	if !workflowResolved {
+	workflow, err := o.workflowResolver.Resolve(req.Lease.WorkflowVersion)
+	if err != nil {
 		status.Status = "FAILED"
-		status.Reason = "workflow resolution failed"
+		status.Reason = "workflow resolution failed: " + err.Error()
 		status.CompletedAt = time.Now().UTC()
 		o.manager.SaveStatus(status)
 		return &ExecutionResult{Status: status}, nil
 	}
+
+	status.WorkflowResolved = true
 
 	batch, err := loadNormalizedBatch(req.BatchInputPath)
 	if err != nil {
@@ -92,8 +95,8 @@ func (o *Orchestrator) Start(ctx context.Context, req ExecutionStartRequest) (*E
 
 	tierBehavior := determineTierBehavior(req.ExecutionState.ProcessingTier, req.ExecutionState.ProcessingMode)
 
-	summary := buildBatchSummary(req, batch, policyResult.PolicyContext, tierBehavior)
-	prov := buildProvenance(req, policyResult.PolicyContext, tierBehavior)
+	summary := buildBatchSummary(req, batch, policyResult.PolicyContext, workflow, tierBehavior)
+	prov := buildProvenance(req, policyResult.PolicyContext, workflow, tierBehavior)
 
 	status.Status = "COMPLETED"
 	status.RecordsProcessed = len(batch.Records)
@@ -126,10 +129,6 @@ func (o *Orchestrator) GetSummary(executionID string) (any, bool) {
 
 func (o *Orchestrator) GetProvenance(executionID string) ([]any, bool) {
 	return o.manager.GetProvenance(executionID)
-}
-
-func (o *Orchestrator) resolveWorkflow(workflowVersion string) bool {
-	return workflowVersion != ""
 }
 
 func loadNormalizedBatch(path string) (*NormalizedBatch, error) {
@@ -194,6 +193,7 @@ func buildBatchSummary(
 	req ExecutionStartRequest,
 	batch *NormalizedBatch,
 	policyCtx *policyresolver.PolicyContext,
+	workflow *WorkflowDefinition,
 	tierBehavior TierBehavior,
 ) batchsummary.BatchSummary {
 	risk := batchsummary.RiskSummary{}
@@ -290,6 +290,8 @@ func buildBatchSummary(
 			"content_intelligence_run": tierBehavior.RunContentIntelligence,
 			"guardian_evaluated":       true,
 			"connector_writeback_gate": "guardian_before_action",
+			"workflow_id":              workflow.WorkflowID,
+			"workflow_steps":           len(workflow.Steps),
 		},
 	}
 }
@@ -297,6 +299,7 @@ func buildBatchSummary(
 func buildProvenance(
 	req ExecutionStartRequest,
 	policyCtx *policyresolver.PolicyContext,
+	workflow *WorkflowDefinition,
 	tierBehavior TierBehavior,
 ) []provenance.ProvenanceRecord {
 	return []provenance.ProvenanceRecord{
@@ -308,7 +311,7 @@ func buildProvenance(
 			DecisionType:            "policy_activation",
 			SourcePolicyVersion:     policyCtx.SourcePolicyVersion,
 			CompiledPolicyVersion:   policyCtx.CompiledPolicyVersion,
-			WorkflowVersion:         req.Lease.WorkflowVersion,
+			WorkflowVersion:         workflow.WorkflowVersion,
 			ProcessingTier:          req.ExecutionState.ProcessingTier,
 			RulesApplied:            []string{"artifact_hash_verified", "signature_verified"},
 			Reasoning:               "Compiled policy artifact was resolved locally and verified before activation.",

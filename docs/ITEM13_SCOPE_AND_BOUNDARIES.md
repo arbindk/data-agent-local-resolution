@@ -10,7 +10,7 @@
 
 ## 1. Purpose
 
-Item 13 is the central runtime orchestration module inside the Data Agent. It is responsible for receiving a prepared execution state from Item 9, resolving and caching the compiled policy and preconfigured workflow from local Git, enforcing the Processing Tier, orchestrating the MVS linear workflow, gating any write-back through Guardian approval, and generating the raw Batch Summary at the end of the batch.
+Item 13 is the central runtime orchestration module inside the Data Agent. It is responsible for receiving a prepared execution state from Item 9: Agent Core Execution State Initialization, resolving and caching the compiled policy and preconfigured workflow from local Git, enforcing the Processing Tier, orchestrating the MVS linear workflow, gating any write-back through Guardian approval, and generating the raw Batch Summary at the end of the batch.
 
 This module is not just a local policy cache. It is the runtime control layer that coordinates the Data Agent execution path.
 

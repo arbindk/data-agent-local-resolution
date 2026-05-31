@@ -22,7 +22,8 @@ func main() {
 
 	policyResolver := policyresolver.NewResolver(cfg)
 	executionManager := execution.NewManager()
-	orchestrator := execution.NewOrchestrator(executionManager, policyResolver)
+	workflowResolver := execution.NewWorkflowResolver(cfg.WorkflowRepoPath)
+	orchestrator := execution.NewOrchestrator(executionManager, policyResolver, workflowResolver)
 
 	server := api.NewServer(policyResolver, orchestrator)
 

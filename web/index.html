@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Everest Agent Core - Item 13 Demo</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f5f7fb;
+      margin: 0;
+      padding: 0;
+      color: #1f2937;
+    }
+
+    header {
+      background: #111827;
+      color: white;
+      padding: 20px 32px;
+    }
+
+    header h1 {
+      margin: 0;
+      font-size: 24px;
+    }
+
+    header p {
+      margin: 8px 0 0;
+      color: #d1d5db;
+    }
+
+    main {
+      padding: 24px 32px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(160px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .card {
+      background: white;
+      border-radius: 12px;
+      padding: 18px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+
+    .card h3 {
+      margin: 0 0 8px;
+      font-size: 14px;
+      color: #6b7280;
+    }
+
+    .card .value {
+      font-size: 26px;
+      font-weight: bold;
+      color: #111827;
+    }
+
+    .section {
+      background: white;
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+
+    button {
+      background: #2563eb;
+      color: white;
+      border: none;
+      padding: 10px 14px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+      margin-right: 8px;
+      margin-bottom: 8px;
+    }
+
+    button.secondary {
+      background: #4b5563;
+    }
+
+    button.danger {
+      background: #dc2626;
+    }
+
+    button:hover {
+      opacity: 0.9;
+    }
+
+    pre {
+      background: #0f172a;
+      color: #e5e7eb;
+      padding: 16px;
+      border-radius: 10px;
+      overflow-x: auto;
+      max-height: 360px;
+    }
+
+    .status-ok {
+      color: #047857;
+      font-weight: bold;
+    }
+
+    .status-error {
+      color: #b91c1c;
+      font-weight: bold;
+    }
+
+    .flow {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .step {
+      background: #eef2ff;
+      border: 1px solid #c7d2fe;
+      border-radius: 999px;
+      padding: 8px 12px;
+      font-size: 13px;
+    }
+  </style>
+</head>
+<body>
+<header>
+  <h1>Everest Agent Core Demo - Item 13</h1>
+  <p>Data Agent Local Resolution, Caching, Runtime Orchestration, Batch Summary, and Provenance</p>
+</header>
+
+<main>
+  <div class="grid">
+    <div class="card">
+      <h3>Service</h3>
+      <div id="serviceStatus" class="value">-</div>
+    </div>
+    <div class="card">
+      <h3>Execution</h3>
+      <div id="executionStatus" class="value">-</div>
+    </div>
+    <div class="card">
+      <h3>Records</h3>
+      <div id="recordsProcessed" class="value">-</div>
+    </div>
+    <div class="card">
+      <h3>Policy</h3>
+      <div id="policyStatus" class="value">-</div>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>Demo Story</h2>
+    <p>
+      This demo shows Agent Core receiving execution state, resolving a trusted compiled policy locally,
+      loading normalized metadata, enforcing processing tier, simulating Guardian-before-action,
+      and generating Batch Summary plus Provenance.
+    </p>
+    <div class="flow">
+      <span class="step">Execution State</span>
+      <span class="step">Lease</span>
+      <span class="step">Policy Resolution</span>
+      <span class="step">Normalized Batch</span>
+      <span class="step">Tier Enforcement</span>
+      <span class="step">Guardian Gate</span>
+      <span class="step">Batch Summary</span>
+      <span class="step">Provenance</span>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>Actions</h2>
+    <button onclick="checkHealth()">Check Health</button>
+    <button onclick="startExecution()">Start Demo Execution</button>
+    <button class="secondary" onclick="getStatus()">Get Status</button>
+    <button class="secondary" onclick="getSummary()">Get Summary</button>
+    <button class="secondary" onclick="getProvenance()">Get Provenance</button>
+    <button class="secondary" onclick="getCacheStatus()">Get Cache Status</button>
+    <button class="danger" onclick="clearOutput()">Clear Output</button>
+  </div>
+
+  <div class="section">
+    <h2>Output</h2>
+    <pre id="output">Click "Check Health" or "Start Demo Execution" to begin.</pre>
+  </div>
+</main>
+
+<script>
+  const executionId = "exec-001";
+
+  function setOutput(data) {
+    document.getElementById("output").textContent =
+      typeof data === "string" ? data : JSON.stringify(data, null, 2);
+  }
+
+  function setCard(id, value, ok = true) {
+    const el = document.getElementById(id);
+    el.textContent = value;
+    el.className = ok ? "value status-ok" : "value status-error";
+  }
+
+  async function api(path, options = {}) {
+    const response = await fetch(path, options);
+    const text = await response.text();
+
+    let data;
+    try {
+      data = JSON.parse(text);
+    } catch {
+      data = text;
+    }
+
+    if (!response.ok) {
+      throw new Error(typeof data === "string" ? data : JSON.stringify(data));
+    }
+
+    return data;
+  }
+
+  async function checkHealth() {
+    try {
+      const data = await api("/healthz");
+      setCard("serviceStatus", "OK", true);
+      setOutput(data);
+    } catch (err) {
+      setCard("serviceStatus", "DOWN", false);
+      setOutput(err.message);
+    }
+  }
+
+
+async function startExecution() {
+  try {
+    const request = await api("/v1/demo/default-request");
+
+    const data = await api("/v1/execution/start", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(request)
+    });
+
+    setCard("executionStatus", data.status.status, data.status.status === "COMPLETED");
+    setCard("recordsProcessed", data.status.records_processed, true);
+    setCard("policyStatus", data.status.policy_resolved ? "Verified" : "No", data.status.policy_resolved);
+    setOutput(data);
+  } catch (err) {
+    setCard("executionStatus", "FAILED", false);
+    setOutput(err.message);
+  }
+}
+
+  async function getStatus() {
+    try {
+      const data = await api(`/v1/execution/${executionId}`);
+      setCard("executionStatus", data.status, data.status === "COMPLETED");
+      setCard("recordsProcessed", data.records_processed, true);
+      setCard("policyStatus", data.policy_resolved ? "Verified" : "No", data.policy_resolved);
+      setOutput(data);
+    } catch (err) {
+      setOutput(err.message);
+    }
+  }
+
+  async function getSummary() {
+    try {
+      const data = await api(`/v1/execution/${executionId}/summary`);
+      setOutput(data);
+    } catch (err) {
+      setOutput(err.message);
+    }
+  }
+
+  async function getProvenance() {
+    try {
+      const data = await api(`/v1/execution/${executionId}/provenance`);
+      setOutput(data);
+    } catch (err) {
+      setOutput(err.message);
+    }
+  }
+
+  async function getCacheStatus() {
+    try {
+      const data = await api("/v1/cache/status");
+      setOutput(data);
+    } catch (err) {
+      setOutput(err.message);
+    }
+  }
+
+  function clearOutput() {
+    setOutput("Output cleared.");
+  }
+
+  checkHealth();
+</script>
+</body>
+</html>
