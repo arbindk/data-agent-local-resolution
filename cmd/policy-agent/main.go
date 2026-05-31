@@ -8,6 +8,7 @@ import (
 
 	"everest.local/data-agent-policy-resolver/internal/api"
 	"everest.local/data-agent-policy-resolver/internal/config"
+	"everest.local/data-agent-policy-resolver/internal/execution"
 	"everest.local/data-agent-policy-resolver/internal/policyresolver"
 )
 
@@ -18,9 +19,13 @@ func main() {
 	}
 
 	cfg := config.Load()
-	resolver := policyresolver.NewResolver(cfg)
-	server := api.NewServer(resolver)
 
-	fmt.Println("Data Agent Local Resolution service starting on", addr)
+	policyResolver := policyresolver.NewResolver(cfg)
+	executionManager := execution.NewManager()
+	orchestrator := execution.NewOrchestrator(executionManager, policyResolver)
+
+	server := api.NewServer(policyResolver, orchestrator)
+
+	fmt.Println("Data Agent / Agent Core demo service starting on", addr)
 	log.Fatal(http.ListenAndServe(addr, server.Routes()))
 }

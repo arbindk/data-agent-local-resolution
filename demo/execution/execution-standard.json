@@ -1,0 +1,33 @@
+{
+  "execution_id": "exec-001",
+  "lease": {
+    "lease_id": "lease-001",
+    "job_id": "job-001",
+    "data_store_id": "blob-finance-prod",
+    "compiled_policy_version": "cpv-2026.05.29.001",
+    "compiled_git_tag": "compiled/cpv-2026.05.29.001",
+    "compiled_git_commit": "",
+    "compiled_artifact_hash": "sha256:f5050ea952b39dc72b250d02b2c16f36a32b1e45da63f368cde0096444d8e73b",
+    "workflow_version": "workflow-mvs-linear-v1",
+    "workflow_git_tag": "workflow/workflow-mvs-linear-v1"
+  },
+  "execution_state": {
+    "data_store_id": "blob-finance-prod",
+    "processing_tier": "tier_2",
+    "processing_mode": "standard",
+    "policy_version": "cpv-2026.05.29.001",
+    "workflow_version": "workflow-mvs-linear-v1",
+    "settings": {
+      "enable_content_intelligence": true,
+      "enable_guardian_evaluation": true,
+      "enable_write_back_actions": true,
+      "enable_elasticsearch_index": true
+    },
+    "operational_config": {
+      "batch_size": 1000,
+      "local_execution_required": true,
+      "guardian_before_action_required": true
+    }
+  },
+  "batch_input_path": "demo/normalized/blob-batch-001.json"
+}
