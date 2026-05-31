@@ -834,3 +834,27 @@ No.
 ## Q: What is the final demo?
 
 > Start an execution, resolve policy/workflow locally, process a normalized batch, enforce tier, simulate downstream calls, require Guardian approval before action, generate summary, and show provenance.
+
+
+
+# Update 2 — Consolidated Policy Resolver Package
+
+During implementation, the repo had an import cycle because `internal/policyresolver/resolver.go` imported helper subpackages like `artifact`, while those helper packages imported the parent `policyresolver` package.
+
+To keep the hackathon build simple and stable, we consolidated the policy resolver helper files directly under `internal/policyresolver`.
+
+The active policy resolver package now contains:
+
+- `models.go`
+- `resolver.go`
+- `validator.go`
+- `hash.go`
+- `signature.go`
+- `git_resolver.go`
+- `parser.go`
+- `cache.go`
+
+The old subfolder `.go` files were renamed to `.bak` so Go does not compile them.
+
+This keeps the policy resolver as a clean internal trust layer inside Agent Core:
+lease → local Git artifact → hash verification → signature verification → parse policy → activate/cache → last-known-good fallback.
