@@ -857,4 +857,195 @@ The active policy resolver package now contains:
 The old subfolder `.go` files were renamed to `.bak` so Go does not compile them.
 
 This keeps the policy resolver as a clean internal trust layer inside Agent Core:
-lease → local Git artifact → hash verification → signature verification → parse policy → activate/cache → last-known-good fallback.
+lease → local Git artifact → hash verification → signature verification → parse policy → activate/cache → last-
+known-good fallback.
+
+
+Why these folders are needed?
+
+| Folder                  | Meaning                                 |
+| ----------------------- | --------------------------------------- |
+| `internal/execution`    | Agent Core runtime execution flow       |
+| `internal/batchsummary` | Raw Batch Summary emitted by Agent Core |
+| `internal/provenance`   | Decision/execution provenance records   |
+| `data/executions`       | Runtime execution status output         |
+| `data/summaries`        | Batch summary output                    |
+| `data/provenance`       | Provenance output                       |
+
+I separated the Agent Core responsibilities into runtime execution, batch summary, and provenance because they integrate with different MVS items. Execution is Item 13, Batch Summary feeds Item 15, and Provenance feeds Item 12.
+
+What this file means
+
+This file is the core runtime vocabulary for Item 13.
+
+ExecutionStartRequest
+
+This is the request body for the future API:
+
+POST /v1/execution/start
+
+It contains:
+
+Key	Meaning
+execution_id	Unique ID for this Agent Core execution run
+lease	Work assignment from Workload Control
+execution_state	Prepared runtime state from Item 9
+batch_input_path	Path to normalized batch JSON file
+
+Simple explanation:
+
+This is how we start one Agent Core batch execution.
+
+ExecutionLease
+
+This represents the lease coming from Workload Control.
+
+Important fields:
+
+Key	Meaning
+lease_id	Unique lease/work assignment
+job_id	Parent job
+data_store_id	Data store being processed
+compiled_policy_version	Exact compiled policy version to use
+compiled_git_tag	Git tag for local policy resolution
+compiled_git_commit	Git commit fallback reference
+compiled_artifact_hash	SHA-256 expected hash
+workflow_version	Workflow version to run
+workflow_git_tag	Git tag for workflow definition
+
+Team explanation:
+
+The lease tells Agent Core what policy and workflow it must execute for this data store.
+
+ExecutionState
+
+This comes from Item 9.
+
+Important fields:
+
+Key	Meaning
+processing_tier	Tier 1, Tier 2, or Tier 3
+processing_mode	summary, standard, or full_investigation
+settings	Runtime switches
+operational_config	Extensible future config
+
+Team explanation:
+
+Item 9 prepares the state. Item 13 consumes it and enforces it during runtime.
+
+NormalizedFileRecord
+
+This is what Agent Core consumes from Connector / Quick Scan.
+
+It hides protocol-specific details.
+
+Blob, NFS, SMB, S3, and SharePoint should eventually all normalize to this shape.
+
+Team explanation:
+
+Agent Core should not know Blob SDK, SMB ACL internals, or NFS traversal details. It consumes normalized metadata.
+
+
+
+
+
+batchsummary/models.go
+
+What this file means
+
+This defines the raw batch summary that Agent Core emits.
+
+Item 13 owns this because it runs the batch.
+
+Item 15 consumes it because Item 15 owns roll-up.
+
+Team explanation:
+
+Agent Core creates the raw batch-level summary because it knows what happened in that batch. Item 15 then rolls it up into datastore, tenant, or higher-level aggregates.
+
+
+
+gofmt -w internal\provenance\models.go
+
+What this file means
+
+This record answers:
+
+Why did Agent Core take or plan an action?
+Which policy was active?
+Which workflow was active?
+Did Guardian approve?
+Was HITL required?
+Was execution local?
+
+Team explanation:
+
+Provenance makes the decision defensible and auditable.
+
+
+gofmt -w internal\execution\manager.go
+What this file means
+
+This is a simple in-memory store for the demo.
+
+It stores by execution_id:
+
+status
+summary
+provenance
+
+Later, this can become SQLite or a durable local store.
+
+Team explanation:
+
+For the demo, in-memory is enough to prove orchestration. The contract remains stable, so storage can later be replaced with SQLite or DuckDB-backed persistence.
+
+
+# Update 3 — Added Agent Core Runtime Models
+
+After consolidating the policy resolver, we added the first Agent Core runtime model files:
+
+- `internal/execution/models.go`
+- `internal/execution/manager.go`
+- `internal/batchsummary/models.go`
+- `internal/provenance/models.go`
+
+These files define the runtime language of Item 13.
+
+`execution/models.go` defines the execution request, lease, execution state, normalized batch, and execution status. This connects Item 9, Workload Control, Connector/Quick Scan, and Agent Core.
+
+`batchsummary/models.go` defines the raw Batch Summary that Agent Core emits after each batch. Item 15 consumes this for roll-up and long-term storage.
+
+`provenance/models.go` defines the provenance records needed to explain which policy/workflow was active, why a decision happened, whether Guardian approved, and whether local execution was confirmed. This supports Item 12.
+
+`execution/manager.go` provides a simple in-memory store for demo execution status, summary, and provenance records.
+
+This step moves the repo further from a policy-resolution-only PoC toward the broader Agent Core runtime slice.
+
+
+
+What you can say in the daily demo after this step
+
+I fixed the Go package structure and removed the import cycle. Then I added the first Agent Core runtime models for Item 13: execution request, lease, execution state, normalized batch record, execution status, batch summary, and provenance. This keeps the implementation contract-first and prepares the repo for the actual orchestrator flow.
+
+
+
+
+# Update 4 — Added Agent Core Demo Orchestration Flow
+
+We added `internal/execution/orchestrator.go`, which connects the main Item 13 runtime flow.
+
+The demo flow now supports:
+
+1. `POST /v1/execution/start`
+2. Policy resolution through the existing policy resolver
+3. Workflow resolution placeholder for MVS linear workflow
+4. Normalized batch loading from demo JSON
+5. Processing tier behavior selection
+6. Guardian-before-action simulation
+7. Raw Batch Summary generation
+8. Provenance generation
+9. Execution status lookup
+10. Summary and provenance lookup APIs
+
+This makes the repo demo-ready as an Agent Core runtime slice, while still keeping external components like Guardian, Content Intelligence, DuckDB, Elasticsearch, and real connectors behind contract-shaped mocks for now.
