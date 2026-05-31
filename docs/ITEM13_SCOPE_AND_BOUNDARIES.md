@@ -77,7 +77,7 @@ Agent Core decides:
 - how aggressively to invoke Item 6 scoring and sampling
 - how much Content Intelligence Item 14 should run
 - what should stay in DuckDB
-- what should be promoted to Elasticsearch
+- xxxxxxxxxx {  "execution_id": "exec-001",  "batch_id": "batch-001",  "status": "degraded",  "component": "content_intelligence",  "reason": "content_intelligence_unavailable",  "fallback_behavior": "metadata_only_processing",  "partial_batch_success": true,  "files_impacted": 125,  "provenance_recorded": true}json
 - what goes into the Batch Summary
 
 ### 2.5 Connector Coordination
