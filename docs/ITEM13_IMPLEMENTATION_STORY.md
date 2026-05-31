@@ -1049,3 +1049,44 @@ The demo flow now supports:
 10. Summary and provenance lookup APIs
 
 This makes the repo demo-ready as an Agent Core runtime slice, while still keeping external components like Guardian, Content Intelligence, DuckDB, Elasticsearch, and real connectors behind contract-shaped mocks for now.
+
+
+
+
+
+# Update 6 — Added Real Workflow JSON Resolution and Removed UI Hardcoding
+
+We improved the demo flow by adding real workflow JSON resolution.
+
+Earlier, Agent Core only checked whether `workflow_version` was non-empty. Now it loads the workflow definition from:
+
+`demo/compiled-policy-repo/workflows/workflow-mvs-linear-v1.json`
+
+The workflow definition contains the MVS linear steps:
+- resolve compiled policy
+- resolve workflow
+- load normalized batch
+- apply processing tier
+- sampling and scoring
+- content intelligence
+- entity aggregation
+- Guardian evaluation
+- connector write-back
+- batch summary
+- provenance
+
+We added `internal/execution/workflow.go` to resolve and validate the workflow definition.
+
+We also removed hardcoded execution request details from the browser UI. The UI now calls:
+
+`GET /v1/demo/default-request`
+
+This endpoint loads:
+
+`demo/execution/execution-standard.json`
+
+and sends that request to:
+
+`POST /v1/execution/start`
+
+This means policy version, hash, workflow version, and batch input path are no longer hardcoded in the UI. If the demo request changes, we only update the JSON file.
