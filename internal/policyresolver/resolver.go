@@ -6,24 +6,20 @@ import (
 	"time"
 
 	"everest.local/data-agent-policy-resolver/internal/config"
-	"everest.local/data-agent-policy-resolver/internal/policyresolver/artifact"
-	"everest.local/data-agent-policy-resolver/internal/policyresolver/cache"
-	pcrypto "everest.local/data-agent-policy-resolver/internal/policyresolver/crypto"
-	"everest.local/data-agent-policy-resolver/internal/policyresolver/lease"
 )
 
 type Resolver struct {
 	cfg     config.Config
-	git     *artifact.LocalGitResolver
-	cache   *cache.PolicyCache
+	git     *LocalGitResolver
+	cache   *PolicyCache
 	gitDown bool
 }
 
 func NewResolver(cfg config.Config) *Resolver {
 	return &Resolver{
 		cfg:   cfg,
-		git:   artifact.NewLocalGitResolver(cfg.CompiledRepoPath),
-		cache: cache.NewPolicyCache(cfg.ActivePolicyPath, cfg.LKGPath),
+		git:   NewLocalGitResolver(cfg.CompiledRepoPath),
+		cache: NewPolicyCache(cfg.ActivePolicyPath, cfg.LKGPath),
 	}
 }
 
@@ -32,7 +28,7 @@ func (r *Resolver) SetGitUnavailable(v bool) {
 }
 
 func (r *Resolver) ResolveAndActivatePolicy(ctx context.Context, l PolicyLease) (*ResolveResult, error) {
-	if err := lease.Validate(l); err != nil {
+	if err := ValidateLease(l); err != nil {
 		return nil, err
 	}
 
@@ -50,8 +46,9 @@ func (r *Resolver) ResolveAndActivatePolicy(ctx context.Context, l PolicyLease) 
 	location, err := r.git.Resolve(ref)
 	if err != nil {
 		if l.AllowLastKnownGood {
-			return r.fallbackToLKG(l, "local_git_resolution_failed")
+			return r.fallbackToLKG(l, "local_git_resolution_failed: "+err.Error())
 		}
+
 		return &ResolveResult{
 			Status:                "failed_closed",
 			DataStoreID:           l.DataStoreID,
@@ -60,15 +57,15 @@ func (r *Resolver) ResolveAndActivatePolicy(ctx context.Context, l PolicyLease) 
 		}, nil
 	}
 
-	if err := pcrypto.VerifySHA256(location.ArtifactPath, l.CompiledArtifactHash); err != nil {
+	if err := VerifySHA256(location.ArtifactPath, l.CompiledArtifactHash); err != nil {
 		return r.securityRejectOrFallback(l, "hash_verification_failed: "+err.Error())
 	}
 
-	if err := pcrypto.VerifyEd25519(r.cfg.PublicKeyPath, location.ArtifactPath, location.SignaturePath); err != nil {
+	if err := VerifyEd25519(r.cfg.PublicKeyPath, location.ArtifactPath, location.SignaturePath); err != nil {
 		return r.securityRejectOrFallback(l, "signature_verification_failed: "+err.Error())
 	}
 
-	compiled, err := artifact.ParseCompiledPolicy(location.ArtifactPath)
+	compiled, err := ParseCompiledPolicy(location.ArtifactPath)
 	if err != nil {
 		return r.securityRejectOrFallback(l, "artifact_parse_failed: "+err.Error())
 	}
