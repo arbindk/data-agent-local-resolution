@@ -8,6 +8,8 @@ import (
 	"time"
 
 	"everest.local/data-agent-policy-resolver/internal/batchsummary"
+	"everest.local/data-agent-policy-resolver/internal/contracts"
+	"everest.local/data-agent-policy-resolver/internal/localstore/duckdbstore"
 	"everest.local/data-agent-policy-resolver/internal/policyresolver"
 	"everest.local/data-agent-policy-resolver/internal/provenance"
 )
@@ -16,13 +18,20 @@ type Orchestrator struct {
 	manager          *Manager
 	policyResolver   *policyresolver.Resolver
 	workflowResolver *WorkflowResolver
+	store            *duckdbstore.Store
 }
 
-func NewOrchestrator(manager *Manager, policyResolver *policyresolver.Resolver, workflowResolver *WorkflowResolver) *Orchestrator {
+func NewOrchestrator(
+	manager *Manager,
+	policyResolver *policyresolver.Resolver,
+	workflowResolver *WorkflowResolver,
+	store *duckdbstore.Store,
+) *Orchestrator {
 	return &Orchestrator{
 		manager:          manager,
 		policyResolver:   policyResolver,
 		workflowResolver: workflowResolver,
+		store:            store,
 	}
 }
 
@@ -84,7 +93,7 @@ func (o *Orchestrator) Start(ctx context.Context, req ExecutionStartRequest) (*E
 
 	status.WorkflowResolved = true
 
-	batch, err := loadNormalizedBatch(req.BatchInputPath)
+	batch, err := o.loadBatch(ctx, req)
 	if err != nil {
 		status.Status = "FAILED"
 		status.Reason = "normalized batch load failed: " + err.Error()
@@ -131,7 +140,15 @@ func (o *Orchestrator) GetProvenance(executionID string) ([]any, bool) {
 	return o.manager.GetProvenance(executionID)
 }
 
-func loadNormalizedBatch(path string) (*NormalizedBatch, error) {
+func (o *Orchestrator) loadBatch(ctx context.Context, req ExecutionStartRequest) (*contracts.NormalizedBatch, error) {
+	if req.BatchID != "" && o.store != nil {
+		return o.store.LoadNormalizedBatch(ctx, req.BatchID)
+	}
+
+	return loadNormalizedBatch(req.BatchInputPath)
+}
+
+func loadNormalizedBatch(path string) (*contracts.NormalizedBatch, error) {
 	if path == "" {
 		return nil, fmt.Errorf("batch_input_path is required")
 	}
@@ -141,7 +158,7 @@ func loadNormalizedBatch(path string) (*NormalizedBatch, error) {
 		return nil, err
 	}
 
-	var batch NormalizedBatch
+	var batch contracts.NormalizedBatch
 	if err := json.Unmarshal(b, &batch); err != nil {
 		return nil, err
 	}
@@ -191,7 +208,7 @@ func determineTierBehavior(processingTier string, processingMode string) TierBeh
 
 func buildBatchSummary(
 	req ExecutionStartRequest,
-	batch *NormalizedBatch,
+	batch *contracts.NormalizedBatch,
 	policyCtx *policyresolver.PolicyContext,
 	workflow *WorkflowDefinition,
 	tierBehavior TierBehavior,

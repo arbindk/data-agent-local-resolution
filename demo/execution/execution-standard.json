@@ -29,5 +29,6 @@
       "guardian_before_action_required": true
     }
   },
+  "batch_id": "batch-001",
   "batch_input_path": "demo/normalized/blob-batch-001.json"
 }

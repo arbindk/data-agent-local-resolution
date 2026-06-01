@@ -173,6 +173,7 @@
   <div class="section">
     <h2>Actions</h2>
     <button onclick="checkHealth()">Check Health</button>
+    <button onclick="seedDuckDB()">Seed DuckDB</button>
     <button onclick="startExecution()">Start Demo Execution</button>
     <button class="secondary" onclick="getStatus()">Get Status</button>
     <button class="secondary" onclick="getSummary()">Get Summary</button>
@@ -189,6 +190,17 @@
 
 <script>
   const executionId = "exec-001";
+
+   async function seedDuckDB() {
+  try {
+    const data = await api("/v1/demo/seed-duckdb", {
+      method: "POST"
+    });
+    setOutput(data);
+  } catch (err) {
+    setOutput(err.message);
+  }
+}
 
   function setOutput(data) {
     document.getElementById("output").textContent =
