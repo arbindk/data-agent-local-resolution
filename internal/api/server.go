@@ -3,6 +3,7 @@ package api
 import (
 	"encoding/json"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"everest.local/data-agent-policy-resolver/internal/config"
@@ -155,6 +156,11 @@ func (s *Server) startExecution(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) executionByID(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		writeJSON(w, http.StatusMethodNotAllowed, map[string]string{"error": "method not allowed"})
+		return
+	}
+
 	path := strings.TrimPrefix(r.URL.Path, "/v1/execution/")
 	parts := strings.Split(strings.Trim(path, "/"), "/")
 
@@ -191,6 +197,23 @@ func (s *Server) executionByID(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		writeJSON(w, http.StatusOK, prov)
+
+	case "manifest":
+		if len(parts) < 3 {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "manifest endpoint required"})
+			return
+		}
+
+		switch parts[2] {
+		case "summary":
+			s.getManifestSummary(w, r, executionID)
+
+		case "details":
+			s.getManifestDetails(w, r, executionID)
+
+		default:
+			writeJSON(w, http.StatusNotFound, map[string]string{"error": "unknown manifest endpoint"})
+		}
 
 	default:
 		writeJSON(w, http.StatusNotFound, map[string]string{"error": "unknown execution endpoint"})
@@ -371,4 +394,47 @@ func (s *Server) listAzureBlobContainers(w http.ResponseWriter, r *http.Request)
 		"containers":    containers,
 		"count":         len(containers),
 	})
+}
+
+func (s *Server) getManifestSummary(w http.ResponseWriter, r *http.Request, executionID string) {
+	summary, err := s.store.GetManifestSummary(r.Context(), executionID)
+	if err != nil {
+		writeJSON(w, http.StatusNotFound, map[string]string{"error": err.Error()})
+		return
+	}
+
+	writeJSON(w, http.StatusOK, summary)
+}
+
+func (s *Server) getManifestDetails(w http.ResponseWriter, r *http.Request, executionID string) {
+	limit := queryInt(r, "limit", 100)
+	offset := queryInt(r, "offset", 0)
+
+	details, total, err := s.store.ListManifestDetails(r.Context(), executionID, limit, offset)
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
+		return
+	}
+
+	writeJSON(w, http.StatusOK, map[string]any{
+		"execution_id": executionID,
+		"total":        total,
+		"limit":        limit,
+		"offset":       offset,
+		"items":        details,
+	})
+}
+
+func queryInt(r *http.Request, name string, defaultValue int) int {
+	value := r.URL.Query().Get(name)
+	if value == "" {
+		return defaultValue
+	}
+
+	parsed, err := strconv.Atoi(value)
+	if err != nil {
+		return defaultValue
+	}
+
+	return parsed
 }

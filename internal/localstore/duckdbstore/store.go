@@ -101,6 +101,59 @@ func (s *Store) Init(ctx context.Context) error {
 			created_at TEXT
 		);
 		`,
+		`
+		CREATE TABLE IF NOT EXISTS manifest_summary (
+			execution_id TEXT PRIMARY KEY,
+			job_id TEXT,
+			lease_id TEXT,
+			batch_id TEXT,
+			data_store_id TEXT,
+			source_system TEXT,
+			status TEXT,
+			total_records INTEGER,
+			processed_records INTEGER,
+			total_size_bytes INTEGER,
+			critical_count INTEGER,
+			high_count INTEGER,
+			medium_count INTEGER,
+			low_count INTEGER,
+			average_risk_score REAL,
+			actions_planned INTEGER,
+			actions_completed INTEGER,
+			actions_failed INTEGER,
+			compiled_policy_version TEXT,
+			workflow_version TEXT,
+			processing_tier TEXT,
+			processing_mode TEXT,
+			started_at TEXT,
+			completed_at TEXT
+		);
+		`,
+		`
+		CREATE TABLE IF NOT EXISTS manifest_details (
+			execution_id TEXT,
+			batch_id TEXT,
+			data_store_id TEXT,
+			file_id TEXT,
+			path TEXT,
+			name TEXT,
+			size_bytes INTEGER,
+			content_type TEXT,
+			extension TEXT,
+			source_system TEXT,
+			risk_score INTEGER,
+			risk_level TEXT,
+			classification TEXT,
+			entities_json TEXT,
+			guardian_decision TEXT,
+			action_requested TEXT,
+			action_status TEXT,
+			error TEXT,
+			provenance_id TEXT,
+			compiled_policy_version TEXT,
+			workflow_version TEXT
+		);
+		`,
 	}
 
 	for _, statement := range statements {

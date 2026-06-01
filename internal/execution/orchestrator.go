@@ -117,6 +117,17 @@ func (o *Orchestrator) Start(ctx context.Context, req ExecutionStartRequest) (*E
 	}
 	status.CompletedAt = time.Now().UTC()
 
+	manifestSummary, manifestDetails := buildManifest(req, status, batch)
+	if o.store != nil {
+		if err := o.store.SaveManifest(ctx, manifestSummary, manifestDetails); err != nil {
+			status.Status = "FAILED"
+			status.Reason = "manifest persistence failed: " + err.Error()
+			status.CompletedAt = time.Now().UTC()
+			o.manager.SaveStatus(status)
+			return &ExecutionResult{Status: status}, nil
+		}
+	}
+
 	o.manager.SaveStatus(status)
 	o.manager.SaveSummary(req.ExecutionID, summary)
 	o.manager.SaveProvenance(req.ExecutionID, toAnySlice(prov))
