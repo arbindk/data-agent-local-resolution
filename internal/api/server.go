@@ -11,27 +11,49 @@ import (
 	"everest.local/data-agent-policy-resolver/internal/execution"
 	"everest.local/data-agent-policy-resolver/internal/localstore/duckdbstore"
 	"everest.local/data-agent-policy-resolver/internal/policyresolver"
+	"everest.local/data-agent-policy-resolver/internal/secretstore"
 )
 
 type Server struct {
-	cfg          config.Config
-	resolver     *policyresolver.Resolver
-	orchestrator *execution.Orchestrator
-	store        *duckdbstore.Store
+	cfg              config.Config
+	resolver         *policyresolver.Resolver
+	orchestrator     *execution.Orchestrator
+	store            *duckdbstore.Store
+	azureConfigStore *azureblob.RuntimeConfigStore
+	secrets          *secretstore.Store
 }
 
 func NewServer(cfg config.Config, resolver *policyresolver.Resolver, orchestrator *execution.Orchestrator, store *duckdbstore.Store) *Server {
+	initialAzureConfig := azureblob.Config{
+		ConnectionString: "",
+		ContainerName:    cfg.AzureBlobContainer,
+		Prefix:           cfg.AzureBlobPrefix,
+		DataStoreID:      cfg.AzureBlobDataStoreID,
+		BatchID:          cfg.AzureBlobBatchID,
+		ActionMode:       cfg.AzureActionMode,
+		WritebackEnabled: cfg.AzureWritebackEnabled,
+	}
+
+	secretStore := secretstore.New()
+
+	if cfg.AzureStorageConnectionString != "" && !secretStore.Exists(azureblob.ConnectionStringSecretName) {
+		_ = secretStore.Save(azureblob.ConnectionStringSecretName, cfg.AzureStorageConnectionString)
+	}
+
 	return &Server{
-		cfg:          cfg,
-		resolver:     resolver,
-		orchestrator: orchestrator,
-		store:        store,
+		cfg:              cfg,
+		resolver:         resolver,
+		orchestrator:     orchestrator,
+		store:            store,
+		azureConfigStore: azureblob.NewRuntimeConfigStore(initialAzureConfig),
+		secrets:          secretStore,
 	}
 }
 
 func (s *Server) Routes() http.Handler {
 	mux := http.NewServeMux()
 
+	mux.HandleFunc("/v1/connectors/azureblob/config", s.azureBlobConfigHandler)
 	mux.HandleFunc("/v1/connectors/azureblob/test", s.testAzureBlob)
 	mux.HandleFunc("/v1/connectors/azureblob/scan", s.scanAzureBlob)
 	mux.HandleFunc("/v1/connectors/azureblob/status", s.azureBlobStatus)
@@ -269,15 +291,13 @@ func (s *Server) seedDuckDB(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) azureBlobConfig() azureblob.Config {
-	return azureblob.Config{
-		ConnectionString: s.cfg.AzureStorageConnectionString,
-		ContainerName:    s.cfg.AzureBlobContainer,
-		Prefix:           s.cfg.AzureBlobPrefix,
-		DataStoreID:      s.cfg.AzureBlobDataStoreID,
-		BatchID:          s.cfg.AzureBlobBatchID,
-		ActionMode:       s.cfg.AzureActionMode,
-		WritebackEnabled: s.cfg.AzureWritebackEnabled,
+	cfg := s.azureConfigStore.Get()
+
+	if secret, err := s.secrets.Load(azureblob.ConnectionStringSecretName); err == nil && secret != "" {
+		cfg.ConnectionString = secret
 	}
+
+	return cfg
 }
 
 func (s *Server) testAzureBlob(w http.ResponseWriter, r *http.Request) {
@@ -366,7 +386,7 @@ func (s *Server) azureBlobStatus(w http.ResponseWriter, r *http.Request) {
 		"batch_id":              cfg.BatchID,
 		"action_mode":           cfg.ActionMode,
 		"writeback_enabled":     cfg.WritebackEnabled,
-		"credential_configured": cfg.ConnectionString != "",
+		"credential_configured": s.secrets.Exists(azureblob.ConnectionStringSecretName),
 	})
 }
 
@@ -437,4 +457,73 @@ func queryInt(r *http.Request, name string, defaultValue int) int {
 	}
 
 	return parsed
+}
+
+func (s *Server) publicAzureBlobConfig() azureblob.PublicConfig {
+	public := s.azureConfigStore.Public()
+	public.CredentialSet = s.secrets.Exists(azureblob.ConnectionStringSecretName)
+	return public
+}
+
+func (s *Server) azureBlobConfigHandler(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodGet:
+		writeJSON(w, http.StatusOK, s.publicAzureBlobConfig())
+		return
+
+	case http.MethodPost:
+		var req azureblob.ConfigureRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid request body: " + err.Error()})
+			return
+		}
+
+		if strings.TrimSpace(req.ConnectionString) != "" {
+			if err := s.secrets.Save(azureblob.ConnectionStringSecretName, strings.TrimSpace(req.ConnectionString)); err != nil {
+				writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to store Azure credential securely: " + err.Error()})
+				return
+			}
+
+			req.ConnectionString = ""
+		}
+
+		current := s.azureConfigStore.Get()
+		next := azureblob.ConfigFromRequest(req, current)
+		next.ConnectionString = ""
+
+		if strings.TrimSpace(next.ContainerName) == "" {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "container is required"})
+			return
+		}
+
+		if strings.TrimSpace(next.DataStoreID) == "" {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "data_store_id is required"})
+			return
+		}
+
+		if strings.TrimSpace(next.BatchID) == "" {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "batch_id is required"})
+			return
+		}
+
+		if strings.TrimSpace(next.ActionMode) == "" {
+			next.ActionMode = "dry_run"
+		}
+
+		if strings.TrimSpace(next.WritebackEnabled) == "" {
+			next.WritebackEnabled = "false"
+		}
+
+		s.azureConfigStore.Update(next)
+
+		writeJSON(w, http.StatusOK, map[string]any{
+			"status": "saved",
+			"config": s.publicAzureBlobConfig(),
+		})
+		return
+
+	default:
+		writeJSON(w, http.StatusMethodNotAllowed, map[string]string{"error": "method not allowed"})
+		return
+	}
 }
