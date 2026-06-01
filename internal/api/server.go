@@ -34,6 +34,7 @@ func (s *Server) Routes() http.Handler {
 	mux.HandleFunc("/v1/connectors/azureblob/test", s.testAzureBlob)
 	mux.HandleFunc("/v1/connectors/azureblob/scan", s.scanAzureBlob)
 	mux.HandleFunc("/v1/connectors/azureblob/status", s.azureBlobStatus)
+	mux.HandleFunc("/v1/connectors/azureblob/containers", s.listAzureBlobContainers)
 
 	mux.HandleFunc("/healthz", s.health)
 
@@ -343,5 +344,31 @@ func (s *Server) azureBlobStatus(w http.ResponseWriter, r *http.Request) {
 		"action_mode":           cfg.ActionMode,
 		"writeback_enabled":     cfg.WritebackEnabled,
 		"credential_configured": cfg.ConnectionString != "",
+	})
+}
+
+func (s *Server) listAzureBlobContainers(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		writeJSON(w, http.StatusMethodNotAllowed, map[string]string{"error": "method not allowed"})
+		return
+	}
+
+	scanner, err := azureblob.NewScanner(s.azureBlobConfig())
+	if err != nil {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
+		return
+	}
+
+	containers, err := scanner.ListContainers(r.Context())
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
+		return
+	}
+
+	writeJSON(w, http.StatusOK, map[string]any{
+		"status":        "ok",
+		"source_system": "azure_blob",
+		"containers":    containers,
+		"count":         len(containers),
 	})
 }

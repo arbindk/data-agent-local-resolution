@@ -172,3 +172,30 @@ func estimateRiskScore(path string, contentType string, size int64) int {
 
 	return score
 }
+
+func (s *Scanner) ListContainers(ctx context.Context) ([]string, error) {
+	client, err := azblob.NewClientFromConnectionString(s.cfg.ConnectionString, nil)
+	if err != nil {
+		return nil, fmt.Errorf("create azure blob client from connection string: %w", err)
+	}
+
+	pager := client.NewListContainersPager(nil)
+
+	containers := make([]string, 0)
+
+	for pager.More() {
+		page, err := pager.NextPage(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("list azure containers: %w", err)
+		}
+
+		for _, item := range page.ContainerItems {
+			if item.Name == nil {
+				continue
+			}
+			containers = append(containers, *item.Name)
+		}
+	}
+
+	return containers, nil
+}
