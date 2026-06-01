@@ -5,24 +5,35 @@ import (
 	"net/http"
 	"strings"
 
+	"everest.local/data-agent-policy-resolver/internal/config"
+	"everest.local/data-agent-policy-resolver/internal/connectors/azureblob"
 	"everest.local/data-agent-policy-resolver/internal/execution"
+	"everest.local/data-agent-policy-resolver/internal/localstore/duckdbstore"
 	"everest.local/data-agent-policy-resolver/internal/policyresolver"
 )
 
 type Server struct {
+	cfg          config.Config
 	resolver     *policyresolver.Resolver
 	orchestrator *execution.Orchestrator
+	store        *duckdbstore.Store
 }
 
-func NewServer(resolver *policyresolver.Resolver, orchestrator *execution.Orchestrator) *Server {
+func NewServer(cfg config.Config, resolver *policyresolver.Resolver, orchestrator *execution.Orchestrator, store *duckdbstore.Store) *Server {
 	return &Server{
+		cfg:          cfg,
 		resolver:     resolver,
 		orchestrator: orchestrator,
+		store:        store,
 	}
 }
 
 func (s *Server) Routes() http.Handler {
 	mux := http.NewServeMux()
+
+	mux.HandleFunc("/v1/connectors/azureblob/test", s.testAzureBlob)
+	mux.HandleFunc("/v1/connectors/azureblob/scan", s.scanAzureBlob)
+	mux.HandleFunc("/v1/connectors/azureblob/status", s.azureBlobStatus)
 
 	mux.HandleFunc("/healthz", s.health)
 
@@ -36,6 +47,7 @@ func (s *Server) Routes() http.Handler {
 	mux.HandleFunc("/v1/cache/status", s.cacheStatus)
 
 	mux.HandleFunc("/v1/demo/default-request", s.defaultDemoRequest)
+	mux.HandleFunc("/v1/demo/seed-duckdb", s.seedDuckDB)
 	mux.Handle("/", http.FileServer(http.Dir("web")))
 
 	return mux
@@ -198,4 +210,138 @@ func writeJSON(w http.ResponseWriter, status int, v any) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
 	_ = json.NewEncoder(w).Encode(v)
+}
+
+func (s *Server) seedDuckDB(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		writeJSON(w, http.StatusMethodNotAllowed, map[string]string{"error": "method not allowed"})
+		return
+	}
+
+	batch, err := execution.LoadNormalizedBatchFile("demo/normalized/blob-batch-001.json")
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
+		return
+	}
+
+	if err := s.store.ReplaceNormalizedFiles(r.Context(), *batch); err != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
+		return
+	}
+
+	count, err := s.store.CountNormalizedFiles(r.Context(), batch.BatchID)
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
+		return
+	}
+
+	writeJSON(w, http.StatusOK, map[string]any{
+		"status":          "seeded",
+		"batch_id":        batch.BatchID,
+		"data_store_id":   batch.DataStoreID,
+		"records_written": count,
+		"store":           "local_ephemeral_db_sqlite_backend",
+	})
+}
+
+func (s *Server) azureBlobConfig() azureblob.Config {
+	return azureblob.Config{
+		ConnectionString: s.cfg.AzureStorageConnectionString,
+		ContainerName:    s.cfg.AzureBlobContainer,
+		Prefix:           s.cfg.AzureBlobPrefix,
+		DataStoreID:      s.cfg.AzureBlobDataStoreID,
+		BatchID:          s.cfg.AzureBlobBatchID,
+		ActionMode:       s.cfg.AzureActionMode,
+		WritebackEnabled: s.cfg.AzureWritebackEnabled,
+	}
+}
+
+func (s *Server) testAzureBlob(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		writeJSON(w, http.StatusMethodNotAllowed, map[string]string{"error": "method not allowed"})
+		return
+	}
+
+	scanner, err := azureblob.NewScanner(s.azureBlobConfig())
+	if err != nil {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
+		return
+	}
+
+	if err := scanner.TestConnection(r.Context()); err != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
+		return
+	}
+
+	cfg := s.azureBlobConfig()
+	writeJSON(w, http.StatusOK, map[string]any{
+		"status":            "ok",
+		"source_system":     "azure_blob",
+		"container":         cfg.ContainerName,
+		"prefix":            cfg.Prefix,
+		"data_store_id":     cfg.DataStoreID,
+		"batch_id":          cfg.BatchID,
+		"action_mode":       cfg.ActionMode,
+		"writeback_enabled": cfg.WritebackEnabled,
+	})
+}
+
+func (s *Server) scanAzureBlob(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		writeJSON(w, http.StatusMethodNotAllowed, map[string]string{"error": "method not allowed"})
+		return
+	}
+
+	scanner, err := azureblob.NewScanner(s.azureBlobConfig())
+	if err != nil {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
+		return
+	}
+
+	batch, result, err := scanner.Scan(r.Context())
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
+		return
+	}
+
+	if err := s.store.ReplaceNormalizedFiles(r.Context(), *batch); err != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
+		return
+	}
+
+	count, err := s.store.CountNormalizedFiles(r.Context(), batch.BatchID)
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
+		return
+	}
+
+	writeJSON(w, http.StatusOK, map[string]any{
+		"status":          result.Status,
+		"source_system":   "azure_blob",
+		"container":       result.ContainerName,
+		"prefix":          result.Prefix,
+		"data_store_id":   result.DataStoreID,
+		"batch_id":        result.BatchID,
+		"records_scanned": result.RecordsScanned,
+		"records_written": count,
+		"store":           "local_ephemeral_db",
+		"action_mode":     result.ActionMode,
+		"writeback":       result.Writeback,
+	})
+}
+
+func (s *Server) azureBlobStatus(w http.ResponseWriter, r *http.Request) {
+	cfg := s.azureBlobConfig()
+
+	writeJSON(w, http.StatusOK, map[string]any{
+		"source_system":         "azure_blob",
+		"container_configured":  cfg.ContainerName != "",
+		"container":             cfg.ContainerName,
+		"prefix":                cfg.Prefix,
+		"data_store_id":         cfg.DataStoreID,
+		"batch_id":              cfg.BatchID,
+		"action_mode":           cfg.ActionMode,
+		"writeback_enabled":     cfg.WritebackEnabled,
+		"credential_configured": cfg.ConnectionString != "",
+	})
 }
