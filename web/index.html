@@ -2,205 +2,729 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Everest Agent Core - Item 13 Demo</title>
+  <title>Everest Data Agent</title>
   <style>
+    :root {
+      --bg: #f4f7fb;
+      --panel: #ffffff;
+      --text: #111827;
+      --muted: #6b7280;
+      --border: #e5e7eb;
+      --primary: #2563eb;
+      --primary-dark: #1d4ed8;
+      --secondary: #4b5563;
+      --success: #047857;
+      --warning: #b45309;
+      --danger: #dc2626;
+      --soft-blue: #eff6ff;
+      --soft-green: #ecfdf5;
+      --soft-yellow: #fffbeb;
+      --soft-red: #fef2f2;
+      --shadow: 0 6px 18px rgba(15, 23, 42, 0.08);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
     body {
-      font-family: Arial, sans-serif;
-      background: #f5f7fb;
+      font-family: "Segoe UI", Arial, sans-serif;
+      background: var(--bg);
       margin: 0;
-      padding: 0;
-      color: #1f2937;
+      color: var(--text);
     }
 
     header {
-      background: #111827;
-      color: white;
-      padding: 20px 32px;
+      background: linear-gradient(135deg, #0f172a, #1e3a8a);
+      color: #ffffff;
+      padding: 24px 36px;
     }
 
     header h1 {
       margin: 0;
-      font-size: 24px;
+      font-size: 26px;
+      letter-spacing: -0.02em;
     }
 
     header p {
       margin: 8px 0 0;
-      color: #d1d5db;
+      color: #dbeafe;
+      max-width: 940px;
+      line-height: 1.5;
     }
 
     main {
-      padding: 24px 32px;
+      padding: 26px 36px 40px;
+      max-width: 1500px;
+      margin: 0 auto;
+    }
+
+    .topbar {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: #ffffff;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      font-size: 13px;
+      box-shadow: 0 2px 8px rgba(15, 23, 42, 0.05);
+    }
+
+    .dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 999px;
+      background: var(--warning);
+    }
+
+    .dot.ok {
+      background: var(--success);
+    }
+
+    .dot.error {
+      background: var(--danger);
     }
 
     .grid {
       display: grid;
-      grid-template-columns: repeat(4, minmax(160px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
       gap: 16px;
-      margin-bottom: 24px;
+      margin-bottom: 22px;
     }
 
     .card {
-      background: white;
-      border-radius: 12px;
+      background: var(--panel);
+      border-radius: 14px;
       padding: 18px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      box-shadow: var(--shadow);
+      border: 1px solid rgba(229, 231, 235, 0.8);
     }
 
     .card h3 {
       margin: 0 0 8px;
-      font-size: 14px;
-      color: #6b7280;
+      font-size: 13px;
+      color: var(--muted);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
     }
 
     .card .value {
       font-size: 26px;
-      font-weight: bold;
-      color: #111827;
+      font-weight: 750;
+      color: var(--text);
+      word-break: break-word;
+    }
+
+    .card .sub {
+      margin-top: 6px;
+      font-size: 12px;
+      color: var(--muted);
     }
 
     .section {
-      background: white;
-      border-radius: 12px;
-      padding: 20px;
+      background: var(--panel);
+      border-radius: 14px;
+      padding: 22px;
       margin-bottom: 20px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      box-shadow: var(--shadow);
+      border: 1px solid rgba(229, 231, 235, 0.8);
+    }
+
+    .section-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+
+    .section h2 {
+      margin: 0;
+      font-size: 19px;
+    }
+
+    .section p {
+      margin: 6px 0 0;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 14px;
     }
 
     button {
-      background: #2563eb;
+      background: var(--primary);
       color: white;
       border: none;
       padding: 10px 14px;
-      border-radius: 8px;
+      border-radius: 9px;
       cursor: pointer;
-      font-weight: 600;
-      margin-right: 8px;
-      margin-bottom: 8px;
-    }
-
-    button.secondary {
-      background: #4b5563;
-    }
-
-    button.danger {
-      background: #dc2626;
+      font-weight: 650;
+      font-size: 14px;
+      transition: transform 0.05s ease, opacity 0.15s ease, background 0.15s ease;
     }
 
     button:hover {
-      opacity: 0.9;
+      background: var(--primary-dark);
     }
 
-    pre {
-      background: #0f172a;
-      color: #e5e7eb;
-      padding: 16px;
-      border-radius: 10px;
-      overflow-x: auto;
-      max-height: 360px;
+    button:active {
+      transform: translateY(1px);
     }
 
-    .status-ok {
-      color: #047857;
-      font-weight: bold;
+    button.secondary {
+      background: var(--secondary);
     }
 
-    .status-error {
-      color: #b91c1c;
-      font-weight: bold;
+    button.warning {
+      background: var(--warning);
+    }
+
+    button.danger {
+      background: var(--danger);
+    }
+
+    button.ghost {
+      background: #eef2ff;
+      color: #1e3a8a;
     }
 
     .flow {
       display: flex;
       flex-wrap: wrap;
       gap: 8px;
-      margin-top: 12px;
+      margin-top: 14px;
     }
 
     .step {
-      background: #eef2ff;
-      border: 1px solid #c7d2fe;
+      background: var(--soft-blue);
+      border: 1px solid #bfdbfe;
       border-radius: 999px;
       padding: 8px 12px;
       font-size: 13px;
+      color: #1e3a8a;
+      font-weight: 600;
+    }
+
+    .status-ok {
+      color: var(--success) !important;
+    }
+
+    .status-error {
+      color: var(--danger) !important;
+    }
+
+    .status-warning {
+      color: var(--warning) !important;
+    }
+
+    .split {
+      display: grid;
+      grid-template-columns: minmax(0, 1.15fr) minmax(320px, 0.85fr);
+      gap: 18px;
+    }
+
+    @media (max-width: 980px) {
+      .split {
+        grid-template-columns: 1fr;
+      }
+
+      main {
+        padding: 20px;
+      }
+
+      header {
+        padding: 22px;
+      }
+    }
+
+    .table-wrap {
+      overflow-x: auto;
+      margin-top: 12px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+      background: #ffffff;
+    }
+
+    th, td {
+      text-align: left;
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+    }
+
+    th {
+      background: #f9fafb;
+      color: #374151;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    tr:last-child td {
+      border-bottom: none;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 4px 9px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+      background: #eef2ff;
+      color: #3730a3;
+      white-space: nowrap;
+    }
+
+    .badge.low {
+      background: var(--soft-green);
+      color: #047857;
+    }
+
+    .badge.medium {
+      background: var(--soft-yellow);
+      color: #b45309;
+    }
+
+    .badge.high,
+    .badge.critical {
+      background: var(--soft-red);
+      color: #b91c1c;
+    }
+
+    .small-text {
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.45;
+    }
+
+    pre {
+      background: #0f172a;
+      color: #e5e7eb;
+      padding: 16px;
+      border-radius: 12px;
+      overflow-x: auto;
+      max-height: 420px;
+      margin: 0;
+      font-size: 12px;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 12px;
+      margin-top: 14px;
+    }
+
+    label {
+      display: block;
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 6px;
+      font-weight: 650;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+
+    input, select {
+      width: 100%;
+      border: 1px solid var(--border);
+      border-radius: 9px;
+      padding: 10px 12px;
+      font-size: 14px;
+      background: #ffffff;
+      color: var(--text);
+    }
+
+    .notice {
+      padding: 12px 14px;
+      border-radius: 12px;
+      background: var(--soft-blue);
+      border: 1px solid #bfdbfe;
+      color: #1e3a8a;
+      font-size: 13px;
+      line-height: 1.45;
+      margin-top: 12px;
     }
   </style>
 </head>
+
 <body>
 <header>
-  <h1>Everest Agent Core Demo - Item 13</h1>
-  <p>Data Agent Local Resolution, Caching, Runtime Orchestration, Batch Summary, and Provenance</p>
+  <h1>Everest Data Agent</h1>
+  <p>
+    Secure local data processing for enterprise repositories. Connect to a data source, scan metadata,
+    process records locally, review the manifest, and validate policy-driven actions before anything is written back.
+  </p>
 </header>
 
 <main>
+  <div class="topbar">
+    <div class="pill">
+      <span id="serviceDot" class="dot"></span>
+      <span id="serviceLabel">Checking service health...</span>
+    </div>
+    <div class="pill">
+      Source: <strong id="sourceLabel">Azure Blob</strong>
+    </div>
+    <div class="pill">
+      Mode: <strong id="modeLabel">Dry-run</strong>
+    </div>
+  </div>
+
   <div class="grid">
     <div class="card">
-      <h3>Service</h3>
+      <h3>Agent Health</h3>
       <div id="serviceStatus" class="value">-</div>
+      <div class="sub">Local service status</div>
     </div>
+
+    <div class="card">
+      <h3>Connection</h3>
+      <div id="connectionStatus" class="value">-</div>
+      <div class="sub">Storage account access</div>
+    </div>
+
+    <div class="card">
+      <h3>Credential</h3>
+      <div id="credentialStatus" class="value">-</div>
+      <div class="sub">Secure secret storage</div>
+    </div>
+
+    <div class="card">
+      <h3>Objects Scanned</h3>
+      <div id="recordsProcessed" class="value">-</div>
+      <div class="sub">Normalized records in local store</div>
+    </div>
+
     <div class="card">
       <h3>Execution</h3>
       <div id="executionStatus" class="value">-</div>
+      <div class="sub">Current processing state</div>
     </div>
-    <div class="card">
-      <h3>Records</h3>
-      <div id="recordsProcessed" class="value">-</div>
-    </div>
+
     <div class="card">
       <h3>Policy</h3>
       <div id="policyStatus" class="value">-</div>
+      <div class="sub">Runtime policy verification</div>
+    </div>
+
+    <div class="card">
+      <h3>Manifest</h3>
+      <div id="manifestRecords" class="value">-</div>
+      <div class="sub">Records available for review</div>
+    </div>
+
+    <div class="card">
+      <h3>Actions Planned</h3>
+      <div id="actionsPlanned" class="value">-</div>
+      <div class="sub">Dry-run recommendations</div>
     </div>
   </div>
 
   <div class="section">
-    <h2>Demo Story</h2>
-    <p>
-      This demo shows Agent Core receiving execution state, resolving a trusted compiled policy locally,
-      loading normalized metadata, enforcing processing tier, simulating Guardian-before-action,
-      and generating Batch Summary plus Provenance.
-    </p>
+    <div class="section-header">
+      <div>
+        <h2>Processing Flow</h2>
+        <p>
+          Everest converts source-specific metadata into a normalized local manifest, then processes it through
+          policy, workflow, risk evaluation, action planning, and provenance.
+        </p>
+      </div>
+    </div>
+
     <div class="flow">
-      <span class="step">Execution State</span>
-      <span class="step">Lease</span>
-      <span class="step">Policy Resolution</span>
-      <span class="step">Normalized Batch</span>
-      <span class="step">Tier Enforcement</span>
-      <span class="step">Guardian Gate</span>
-      <span class="step">Batch Summary</span>
+      <span class="step">Connect Source</span>
+      <span class="step">Scan Metadata</span>
+      <span class="step">Normalize Records</span>
+      <span class="step">Local Processing</span>
+      <span class="step">Policy Verification</span>
+      <span class="step">Action Planning</span>
+      <span class="step">Manifest Review</span>
       <span class="step">Provenance</span>
     </div>
+
+    <div class="notice">
+      Current action mode is dry-run. The system will plan recommended actions and show them in the manifest,
+      but it will not modify Azure Blob metadata or tags unless write-back is explicitly enabled later.
+    </div>
+  </div>
+
+  <div class="split">
+    <div class="section">
+      <div class="section-header">
+        <div>
+          <h2>Azure Blob Connection</h2>
+          <p>Validate the configured Azure Storage account, list containers, and scan the selected container.</p>
+        </div>
+      </div>
+
+      <div class="form-grid">
+        <div>
+          <label>Connection String</label>
+          <input id="connectionString" type="password" placeholder="Leave blank to keep existing credential"
+            autocomplete="off" />
+        </div>
+
+        <div>
+          <label>Container</label>
+          <input id="containerName" value="hulkb01" />
+        </div>
+
+        <div>
+          <label>Prefix</label>
+          <input id="prefixValue" value="" placeholder="Optional, for example finance/" />
+        </div>
+
+        <div>
+          <label>Data Store</label>
+          <input id="dataStoreId" value="azureblob-hulkb01" />
+        </div>
+
+        <div>
+          <label>Batch</label>
+          <input id="batchId" value="batch-azure-001" />
+        </div>
+      </div>
+
+      <div class="actions">
+        <button onclick="checkHealth()">Check Agent Health</button>
+        <button onclick="saveAzureConfig()">Save Configuration</button>
+        <button onclick="loadAzureConfig()">Load Configuration</button>
+        <button onclick="listContainers()">List Containers</button>
+        <button onclick="testAzureConnection()">Test Connection</button>
+        <button onclick="scanAzureContainer()">Scan Container</button>
+      </div>
+
+      <div id="containersView" class="small-text">Available containers will appear here after listing.</div>
+    </div>
+
+    <div class="section">
+      <div class="section-header">
+        <div>
+          <h2>Local Processing</h2>
+          <p>Run the processing workflow on the latest normalized batch and load the customer-facing results.</p>
+        </div>
+      </div>
+
+      <div class="actions">
+        <button onclick="startAzureExecution()">Start Processing</button>
+        <button class="secondary" onclick="getStatus()">Get Status</button>
+        <button class="secondary" onclick="getSummary()">Get Summary</button>
+        <button class="secondary" onclick="getProvenance()">Get Provenance</button>
+        <button class="secondary" onclick="getCacheStatus()">System Cache</button>
+        <button class="danger" onclick="clearOutput()">Clear Output</button>
+      </div>
+
+      <div class="notice">
+        Recommended flow: Check Agent Health → List Containers → Test Connection → Scan Container → Start Processing → Review Manifest.
+      </div>
+    </div>
   </div>
 
   <div class="section">
-    <h2>Actions</h2>
-    <button onclick="checkHealth()">Check Health</button>
-    <button onclick="seedDuckDB()">Seed DuckDB</button>
-    <button onclick="startExecution()">Start Demo Execution</button>
-    <button class="secondary" onclick="getStatus()">Get Status</button>
-    <button class="secondary" onclick="getSummary()">Get Summary</button>
-    <button class="secondary" onclick="getProvenance()">Get Provenance</button>
-    <button class="secondary" onclick="getCacheStatus()">Get Cache Status</button>
-    <button class="danger" onclick="clearOutput()">Clear Output</button>
+    <div class="section-header">
+      <div>
+        <h2>Manifest Summary</h2>
+        <p>High-level summary of the latest processing run, including risk distribution and planned actions.</p>
+      </div>
+      <div class="actions">
+        <button class="secondary" onclick="getManifestSummary()">Refresh Summary</button>
+      </div>
+    </div>
+
+    <div id="manifestSummaryView" class="small-text">
+      Start processing, then refresh the manifest summary.
+    </div>
   </div>
 
   <div class="section">
-    <h2>Output</h2>
-    <pre id="output">Click "Check Health" or "Start Demo Execution" to begin.</pre>
+    <div class="section-header">
+      <div>
+        <h2>Detailed Manifest</h2>
+        <p>Per-object manifest showing path, risk, classification, and planned action state.</p>
+      </div>
+      <div class="actions">
+        <button class="secondary" onclick="getManifestDetails()">Load Details</button>
+        <button class="secondary" onclick="previousManifestPage()">Previous</button>
+        <button class="secondary" onclick="nextManifestPage()">Next</button>
+      </div>
+    </div>
+
+    <div id="manifestPager" class="small-text">Page: -</div>
+    <div id="manifestDetailsView" class="table-wrap">
+      <table>
+        <tbody>
+          <tr>
+            <td>No manifest details loaded.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-header">
+      <div>
+        <h2>Activity Log</h2>
+        <p>Shows the visible effect of each operation performed in this console.</p>
+      </div>
+    </div>
+    <div id="activityLog" class="small-text">
+      No activity yet.
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-header">
+      <div>
+        <h2>System Output</h2>
+        <p>Raw API response for troubleshooting and validation.</p>
+      </div>
+    </div>
+    <pre id="output">Ready. Check agent health to begin.</pre>
   </div>
 </main>
 
 <script>
-  const executionId = "exec-001";
+  let executionId = "exec-azure-001";
+  let manifestLimit = 25;
+  let manifestOffset = 0;
+  let manifestTotal = 0;
 
-   async function seedDuckDB() {
-  try {
-    const data = await api("/v1/demo/seed-duckdb", {
-      method: "POST"
+  const defaultPolicyHash = "sha256:f5050ea952b39dc72b250d02b2c16f36a32b1e45da63f368cde0096444d8e73b";
+  let activityItems = [];
+
+  function addActivity(message, level = "info") {
+    const timestamp = new Date().toLocaleTimeString();
+    activityItems.unshift({
+      timestamp,
+      message,
+      level
     });
-    setOutput(data);
-  } catch (err) {
-    setOutput(err.message);
+
+    activityItems = activityItems.slice(0, 12);
+
+    const rows = activityItems.map(item => {
+      const color =
+        item.level === "error" ? "#b91c1c" :
+        item.level === "success" ? "#047857" :
+        item.level === "warning" ? "#b45309" :
+        "#374151";
+
+      return `
+        <div style="padding: 6px 0; border-bottom: 1px solid #e5e7eb;">
+          <strong style="color:${color};">${escapeHtml(item.timestamp)}</strong>
+          <span style="color:${color};">${escapeHtml(item.message)}</span>
+        </div>
+      `;
+    }).join("");
+
+    document.getElementById("activityLog").innerHTML = rows;
   }
-}
+
+    async function saveAzureConfig() {
+    try {
+      addActivity("Saving Azure Blob connector configuration...", "info");
+      setOutput("Saving connector configuration securely...");
+
+      const payload = {
+        connection_string: document.getElementById("connectionString").value.trim(),
+        container: currentContainer(),
+        prefix: currentPrefix(),
+        data_store_id: currentDataStoreId(),
+        batch_id: currentBatchId(),
+        action_mode: "dry_run",
+        writeback_enabled: "false"
+      };
+
+      const data = await api("/v1/connectors/azureblob/config", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(payload)
+      });
+
+      document.getElementById("connectionString").value = "";
+
+      if (data.config && data.config.credential_set) {
+        setCard("credentialStatus", "Configured", true);
+      } else {
+        setCard("credentialStatus", "Missing", false);
+      }
+
+      setCard("connectionStatus", "Saved", true);
+      addActivity("Azure Blob connector configuration saved securely.", "success");
+      setOutput(data);
+    } catch (err) {
+      setCard("connectionStatus", "FAILED", false);
+      addActivity("Failed to save Azure Blob connector configuration.", "error");
+      setOutput(err.message);
+    }
+  }
+
+    async function loadAzureConfig() {
+    try {
+      const data = await api("/v1/connectors/azureblob/config");
+
+      document.getElementById("containerName").value = data.container || "";
+      document.getElementById("prefixValue").value = data.prefix || "";
+      document.getElementById("dataStoreId").value = data.data_store_id || "";
+      document.getElementById("batchId").value = data.batch_id || "";
+
+      if (data.credential_set) {
+        setCard("credentialStatus", "Configured", true);
+        addActivity("Secure Azure credential is configured.", "success");
+      } else {
+        setCard("credentialStatus", "Missing", false);
+        addActivity("Azure credential is not configured.", "warning");
+      }
+
+      setOutput(data);
+    } catch (err) {
+      setCard("credentialStatus", "Unknown", false);
+      addActivity("Failed to load Azure Blob connector configuration.", "error");
+      setOutput(err.message);
+    }
+  }
+
+  function currentContainer() {
+    return document.getElementById("containerName").value.trim() || "hulkb01";
+  }
+
+  function currentPrefix() {
+    return document.getElementById("prefixValue").value.trim();
+  }
+
+  function currentDataStoreId() {
+    return document.getElementById("dataStoreId").value.trim() || "azureblob-hulkb01";
+  }
+
+  function currentBatchId() {
+    return document.getElementById("batchId").value.trim() || "batch-azure-001";
+  }
 
   function setOutput(data) {
     document.getElementById("output").textContent =
@@ -211,6 +735,26 @@
     const el = document.getElementById(id);
     el.textContent = value;
     el.className = ok ? "value status-ok" : "value status-error";
+  }
+
+  function setServicePill(ok, text) {
+    const dot = document.getElementById("serviceDot");
+    const label = document.getElementById("serviceLabel");
+    dot.className = ok ? "dot ok" : "dot error";
+    label.textContent = text;
+  }
+
+  function escapeHtml(value) {
+    if (value === null || value === undefined) {
+      return "";
+    }
+
+    return String(value)
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;")
+      .replaceAll("'", "&#039;");
   }
 
   async function api(path, options = {}) {
@@ -232,20 +776,130 @@
   }
 
   async function checkHealth() {
-    try {
-      const data = await api("/healthz");
-      setCard("serviceStatus", "OK", true);
-      setOutput(data);
-    } catch (err) {
-      setCard("serviceStatus", "DOWN", false);
-      setOutput(err.message);
-    }
+  try {
+    addActivity("Checking local agent health...", "info");
+
+    const data = await api("/healthz");
+
+    setCard("serviceStatus", "OK", true);
+    setServicePill(true, "Agent service is healthy");
+    addActivity("Agent service is healthy.", "success");
+    setOutput(data);
+  } catch (err) {
+    setCard("serviceStatus", "DOWN", false);
+    setServicePill(false, "Agent service is not reachable");
+    addActivity("Agent service health check failed.", "error");
+    setOutput(err.message);
+  }
+}
+
+  async function listContainers() {
+  try {
+    addActivity("Listing Azure Blob containers...", "info");
+
+    const data = await api("/v1/connectors/azureblob/containers");
+    const containers = data.containers || [];
+
+    document.getElementById("containersView").innerHTML = containers.length
+      ? `Available containers: ${containers.map(c => `<span class="badge">${escapeHtml(c)}</span>`).join(" ")}`
+      : "No containers returned.";
+
+    addActivity(`Container list loaded. ${containers.length} container(s) found.`, "success");
+    setOutput(data);
+  } catch (err) {
+    addActivity("Failed to list Azure Blob containers.", "error");
+    setOutput(err.message);
+  }
+}
+
+  async function testAzureConnection() {
+  try {
+    addActivity("Testing Azure Blob connection...", "info");
+    setCard("connectionStatus", "Testing", true);
+
+    const data = await api("/v1/connectors/azureblob/test", {
+      method: "POST"
+    });
+
+    setCard("connectionStatus", "OK", true);
+    document.getElementById("sourceLabel").textContent =
+      `${data.source_system || "Azure Blob"} / ${data.container || currentContainer()}`;
+
+    addActivity("Azure Blob connection test passed.", "success");
+    setOutput(data);
+  } catch (err) {
+    setCard("connectionStatus", "FAILED", false);
+    addActivity("Azure Blob connection test failed.", "error");
+    setOutput(err.message);
+  }
+}
+
+  async function scanAzureContainer() {
+  try {
+    addActivity("Starting Azure Blob metadata scan...", "info");
+    setCard("recordsProcessed", "Scanning", true);
+    setOutput("Scanning Azure Blob container. Please wait...");
+
+    const data = await api("/v1/connectors/azureblob/scan", {
+      method: "POST"
+    });
+
+    setCard("recordsProcessed", data.records_written || data.records_scanned || "-", true);
+    setCard("connectionStatus", "OK", true);
+    document.getElementById("modeLabel").textContent = data.action_mode || "dry_run";
+
+    addActivity(`Metadata scan completed. ${data.records_written || data.records_scanned || 0} record(s) written.`, "success");
+    setOutput(data);
+  } catch (err) {
+    setCard("recordsProcessed", "FAILED", false);
+    addActivity("Azure Blob metadata scan failed.", "error");
+    setOutput(err.message);
+  }
+}
+
+  function buildAzureExecutionRequest() {
+    return {
+      execution_id: executionId,
+      lease: {
+        lease_id: "lease-azure-001",
+        job_id: "job-azure-001",
+        data_store_id: currentDataStoreId(),
+        compiled_policy_version: "cpv-2026.05.29.001",
+        compiled_git_tag: "compiled/cpv-2026.05.29.001",
+        compiled_git_commit: "",
+        compiled_artifact_hash: defaultPolicyHash,
+        workflow_version: "workflow-mvs-linear-v1",
+        workflow_git_tag: "workflow/workflow-mvs-linear-v1"
+      },
+      execution_state: {
+        data_store_id: currentDataStoreId(),
+        processing_tier: "tier_2",
+        processing_mode: "standard",
+        policy_version: "cpv-2026.05.29.001",
+        workflow_version: "workflow-mvs-linear-v1",
+        settings: {
+          enable_content_intelligence: true,
+          enable_guardian_evaluation: true,
+          enable_write_back_actions: false,
+          enable_elasticsearch_index: true
+        },
+        operational_config: {
+          batch_size: 1000,
+          local_execution_required: true,
+          guardian_before_action_required: true,
+          action_mode: "dry_run"
+        }
+      },
+      batch_id: currentBatchId()
+    };
   }
 
-
-async function startExecution() {
+  async function startAzureExecution() {
   try {
-    const request = await api("/v1/demo/default-request");
+    addActivity("Starting local processing workflow...", "info");
+    setCard("executionStatus", "Running", true);
+
+    const request = buildAzureExecutionRequest();
 
     const data = await api("/v1/execution/start", {
       method: "POST",
@@ -255,12 +909,22 @@ async function startExecution() {
       body: JSON.stringify(request)
     });
 
+    executionId = data.status.execution_id || executionId;
+    manifestOffset = 0;
+
     setCard("executionStatus", data.status.status, data.status.status === "COMPLETED");
     setCard("recordsProcessed", data.status.records_processed, true);
-    setCard("policyStatus", data.status.policy_resolved ? "Verified" : "No", data.status.policy_resolved);
+    setCard("policyStatus", data.status.policy_resolved ? "Verified" : "Not Verified", data.status.policy_resolved);
+
+    addActivity(`Processing completed. ${data.status.records_processed || 0} record(s) processed.`, "success");
+
+    await getManifestSummary();
+    await getManifestDetails();
+
     setOutput(data);
   } catch (err) {
     setCard("executionStatus", "FAILED", false);
+    addActivity("Local processing workflow failed.", "error");
     setOutput(err.message);
   }
 }
@@ -270,7 +934,7 @@ async function startExecution() {
       const data = await api(`/v1/execution/${executionId}`);
       setCard("executionStatus", data.status, data.status === "COMPLETED");
       setCard("recordsProcessed", data.records_processed, true);
-      setCard("policyStatus", data.policy_resolved ? "Verified" : "No", data.policy_resolved);
+      setCard("policyStatus", data.policy_resolved ? "Verified" : "Not Verified", data.policy_resolved);
       setOutput(data);
     } catch (err) {
       setOutput(err.message);
@@ -304,11 +968,158 @@ async function startExecution() {
     }
   }
 
+  async function getManifestSummary() {
+    try {
+      addActivity("Refreshing manifest summary...", "info");
+      const data = await api(`/v1/execution/${executionId}/manifest/summary`);
+
+      setCard("manifestRecords", data.total_records, true);
+      setCard("actionsPlanned", data.actions_planned, true);
+
+      document.getElementById("manifestSummaryView").innerHTML = `
+        <div class="grid">
+          <div class="card">
+            <h3>Status</h3>
+            <div class="value">${escapeHtml(data.status)}</div>
+            <div class="sub">Execution state</div>
+          </div>
+          <div class="card">
+            <h3>Total Records</h3>
+            <div class="value">${escapeHtml(data.total_records)}</div>
+            <div class="sub">Objects in manifest</div>
+          </div>
+          <div class="card">
+            <h3>High Risk</h3>
+            <div class="value">${escapeHtml((data.critical_count || 0) + (data.high_count || 0))}</div>
+            <div class="sub">Critical + high</div>
+          </div>
+          <div class="card">
+            <h3>Actions Planned</h3>
+            <div class="value">${escapeHtml(data.actions_planned)}</div>
+            <div class="sub">Dry-run action plan</div>
+          </div>
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <tbody>
+              <tr><th>Execution ID</th><td>${escapeHtml(data.execution_id)}</td></tr>
+              <tr><th>Job ID</th><td>${escapeHtml(data.job_id)}</td></tr>
+              <tr><th>Batch ID</th><td>${escapeHtml(data.batch_id)}</td></tr>
+              <tr><th>Data Store</th><td>${escapeHtml(data.data_store_id)}</td></tr>
+              <tr><th>Source System</th><td>${escapeHtml(data.source_system)}</td></tr>
+              <tr><th>Processed Records</th><td>${escapeHtml(data.processed_records)}</td></tr>
+              <tr><th>Total Size Bytes</th><td>${escapeHtml(data.total_size_bytes)}</td></tr>
+              <tr><th>Critical</th><td>${escapeHtml(data.critical_count)}</td></tr>
+              <tr><th>High</th><td>${escapeHtml(data.high_count)}</td></tr>
+              <tr><th>Medium</th><td>${escapeHtml(data.medium_count)}</td></tr>
+              <tr><th>Low</th><td>${escapeHtml(data.low_count)}</td></tr>
+              <tr><th>Average Risk Score</th><td>${Number(data.average_risk_score || 0).toFixed(2)}</td></tr>
+              <tr><th>Policy Version</th><td>${escapeHtml(data.compiled_policy_version)}</td></tr>
+              <tr><th>Workflow Version</th><td>${escapeHtml(data.workflow_version)}</td></tr>
+              <tr><th>Started</th><td>${escapeHtml(data.started_at)}</td></tr>
+              <tr><th>Completed</th><td>${escapeHtml(data.completed_at)}</td></tr>
+            </tbody>
+          </table>
+        </div>
+      `;
+        addActivity("Manifest summary refreshed.", "success");
+      setOutput(data);
+    } catch (err) {
+      addActivity("Failed to refresh manifest summary.", "error");
+      setOutput(err.message);
+    }
+  }
+
+  async function getManifestDetails() {
+    try {
+      addActivity("Loading detailed manifest records...", "info");
+      const data = await api(`/v1/execution/${executionId}/manifest/details?limit=${manifestLimit}&offset=${manifestOffset}`);
+
+      manifestTotal = data.total || 0;
+      const items = data.items || [];
+
+      if (manifestTotal === 0) {
+        document.getElementById("manifestPager").textContent = "No manifest records found.";
+      } else {
+        document.getElementById("manifestPager").textContent =
+          `Showing ${manifestOffset + 1} - ${Math.min(manifestOffset + manifestLimit, manifestTotal)} of ${manifestTotal}`;
+      }
+
+      if (items.length === 0) {
+        document.getElementById("manifestDetailsView").innerHTML = `
+          <table>
+            <tbody>
+              <tr><td>No manifest detail records found.</td></tr>
+            </tbody>
+          </table>
+        `;
+        setOutput(data);
+        return;
+      }
+
+      const rows = items.map(item => `
+        <tr>
+          <td><span class="badge ${escapeHtml(item.risk_level)}">${escapeHtml(item.risk_level)}</span></td>
+          <td>${escapeHtml(item.risk_score)}</td>
+          <td>${escapeHtml(item.classification)}</td>
+          <td>${escapeHtml(item.path)}</td>
+          <td>${escapeHtml(item.size_bytes)}</td>
+          <td>${escapeHtml(item.content_type || "-")}</td>
+          <td>${escapeHtml(item.action_requested)}</td>
+          <td>${escapeHtml(item.action_status)}</td>
+        </tr>
+      `).join("");
+
+      document.getElementById("manifestDetailsView").innerHTML = `
+        <table>
+          <thead>
+            <tr>
+              <th>Risk</th>
+              <th>Score</th>
+              <th>Classification</th>
+              <th>Path</th>
+              <th>Size</th>
+              <th>Content Type</th>
+              <th>Recommended Action</th>
+              <th>Action Status</th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+      `;
+        addActivity(`Detailed manifest loaded. Showing ${items.length} record(s).`, "success");
+      setOutput(data);
+    } catch (err) {
+      addActivity("Failed to load detailed manifest records.", "error");
+      setOutput(err.message);
+    }
+  }
+
+  async function nextManifestPage() {
+    if (manifestOffset + manifestLimit >= manifestTotal) {
+      return;
+    }
+
+    manifestOffset += manifestLimit;
+    await getManifestDetails();
+  }
+
+  async function previousManifestPage() {
+    manifestOffset -= manifestLimit;
+    if (manifestOffset < 0) {
+      manifestOffset = 0;
+    }
+
+    await getManifestDetails();
+  }
+
   function clearOutput() {
     setOutput("Output cleared.");
   }
 
   checkHealth();
+  loadAzureConfig();
 </script>
 </body>
 </html>
