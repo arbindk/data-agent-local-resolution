@@ -3,6 +3,7 @@ package azureblob
 import "sync"
 
 type PublicConfig struct {
+	StorageAccount   string `json:"storage_account"`
 	ContainerName    string `json:"container"`
 	Prefix           string `json:"prefix"`
 	DataStoreID      string `json:"data_store_id"`
@@ -38,6 +39,7 @@ func (s *RuntimeConfigStore) Public() PublicConfig {
 	defer s.mu.RUnlock()
 
 	return PublicConfig{
+		StorageAccount:   s.cfg.StorageAccount,
 		ContainerName:    s.cfg.ContainerName,
 		Prefix:           s.cfg.Prefix,
 		DataStoreID:      s.cfg.DataStoreID,

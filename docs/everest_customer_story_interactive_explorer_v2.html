@@ -1,0 +1,312 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<link rel="icon" href="data:,">
+<title>EVEREST Customer Story Explorer — Azure Blob</title>
+<style>
+:root{
+  --bg:#07111f;--panel:#0e1b31;--panel2:#12243f;--ink:#eef6ff;--muted:#9fb4d2;--line:#2a4265;
+  --blue:#38bdf8;--green:#22c55e;--purple:#a78bfa;--orange:#fb923c;--red:#fb7185;--amber:#fbbf24;--cyan:#67e8f9;
+  --radius:18px;--shadow:0 22px 65px rgba(0,0,0,.36)
+}
+*{box-sizing:border-box}
+body{margin:0;background:radial-gradient(circle at 10% 0%,#11264a 0,#07111f 38%,#030712 100%);color:var(--ink);font:13px/1.45 Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial}
+button{font:inherit}
+.app{display:grid;grid-template-columns:238px 1fr;min-height:100vh}
+.side{position:sticky;top:0;height:100vh;overflow:auto;border-right:1px solid var(--line);background:rgba(3,8,18,.9);padding:16px 12px}
+.logo{display:flex;gap:10px;align-items:center;margin-bottom:16px}.mark{width:36px;height:36px;border-radius:12px;display:grid;place-items:center;background:linear-gradient(135deg,#2563eb,#a78bfa);font-weight:950}.logo b{font-size:18px;letter-spacing:.08em}.muted{color:var(--muted)}.tiny{font-size:11px}
+.role{width:100%;border:1px solid var(--line);border-radius:15px;background:rgba(255,255,255,.045);color:var(--ink);padding:11px;margin:7px 0;text-align:left;cursor:pointer}.role.active,.role:hover{border-color:var(--blue);background:rgba(56,189,248,.10)}.role strong{display:block}.role span{font-size:11px;color:var(--muted)}
+.sideBtn{width:100%;border:1px solid var(--line);border-radius:12px;background:rgba(255,255,255,.055);color:var(--ink);padding:9px;margin-top:8px;cursor:pointer}
+.main{min-width:0}.top{position:sticky;top:0;z-index:10;display:flex;justify-content:space-between;gap:16px;align-items:center;padding:15px 20px;border-bottom:1px solid var(--line);background:rgba(6,15,29,.88);backdrop-filter:blur(14px)}
+h1{font-size:24px;line-height:1.1;margin:0;font-weight:950}h2{font-size:16px;margin:0 0 9px}h3{font-size:14px;margin:0 0 7px}.wrap{padding:16px;max-width:1720px}
+.card{border:1px solid var(--line);border-radius:var(--radius);background:linear-gradient(180deg,rgba(255,255,255,.058),rgba(255,255,255,.026));box-shadow:var(--shadow);padding:14px}.grid{display:grid;gap:12px}.two{grid-template-columns:1fr 1fr}.three{grid-template-columns:repeat(3,1fr)}.four{grid-template-columns:repeat(4,1fr)}
+.pill{display:inline-flex;align-items:center;border:1px solid var(--line);border-radius:999px;padding:5px 9px;background:rgba(255,255,255,.055);font-size:11px;font-weight:900}.green{color:#86efac;border-color:rgba(34,197,94,.35);background:rgba(34,197,94,.11)}.red{color:#fca5a5;border-color:rgba(251,113,133,.35);background:rgba(251,113,133,.10)}.orange{color:#fdba74;border-color:rgba(251,146,60,.35);background:rgba(251,146,60,.10)}.purple{color:#c4b5fd;border-color:rgba(167,139,250,.35);background:rgba(167,139,250,.10)}.blue{color:#7dd3fc;border-color:rgba(56,189,248,.35);background:rgba(56,189,248,.10)}
+.scenarios{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:8px}.scenario{min-height:66px;border:1px solid var(--line);border-radius:13px;background:rgba(255,255,255,.035);color:var(--ink);padding:9px;text-align:left;cursor:pointer}.scenario strong{display:block;font-size:12px}.scenario span{font-size:10px;color:var(--muted)}.scenario.active,.scenario:hover{border-color:var(--blue);background:rgba(56,189,248,.10)}.scenario.neg{border-color:rgba(251,113,133,.35)}
+.storyHero{display:grid;grid-template-columns:1.2fr .8fr;gap:12px}.chapterWrap{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin-top:10px}.chapter{border:1px solid var(--line);border-radius:14px;background:rgba(255,255,255,.035);padding:10px;cursor:pointer}.chapter.active,.chapter:hover{border-color:var(--green);background:rgba(34,197,94,.10)}.chapter .num{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:999px;background:rgba(56,189,248,.13);border:1px solid rgba(56,189,248,.35);font-weight:950;margin-bottom:6px}.chapter b{display:block}.chapter span{font-size:10px;color:var(--muted)}
+.kpi{border:1px solid var(--line);border-radius:14px;padding:10px;background:rgba(255,255,255,.035)}.kpi label{display:block;font-size:10px;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;font-weight:900}.kpi strong{display:block;font-size:17px;margin-top:4px}
+.flowPanel{display:grid;grid-template-columns:1fr 410px;gap:12px;margin-top:12px}.swim{border:1px solid var(--line);border-radius:18px;background:#071426;overflow:auto}.lanes{min-width:1180px}.laneHead{display:grid;grid-template-columns:70px repeat(12,1fr);background:#0b1a2f;position:sticky;top:0;z-index:1;border-bottom:1px solid var(--line)}.laneHead div{font-size:10px;text-align:center;font-weight:900;color:#b7cdf1;padding:7px 4px;border-right:1px dashed #24405f}.row{display:grid;grid-template-columns:70px repeat(12,1fr);min-height:43px;border-bottom:1px solid rgba(42,66,101,.42)}.cell{position:relative;border-right:1px dashed #1e3654;padding:4px;font-size:10.5px}.num{display:flex;align-items:center;justify-content:center}.bubble{width:24px;height:24px;border-radius:999px;display:grid;place-items:center;font-weight:950;background:rgba(34,197,94,.16);border:1px solid rgba(34,197,94,.45);color:#bbf7d0}.row.neg .bubble{background:rgba(251,113,133,.16);border-color:rgba(251,113,133,.45);color:#fecdd3}.stepBox{border:1px solid transparent;border-radius:10px;padding:5px;cursor:pointer;background:rgba(255,255,255,.018)}.stepBox.active,.stepBox:hover{border-color:rgba(56,189,248,.45);background:rgba(56,189,248,.11)}.arrow{height:2px;position:absolute;left:3px;right:3px;top:50%;background:var(--blue);box-shadow:0 0 10px rgba(56,189,248,.5)}.arrow.green{background:var(--green)}.arrow.orange{background:var(--orange)}.arrow.purple{background:var(--purple)}
+.inspect{position:sticky;top:84px;align-self:start}.detail{border:1px solid var(--line);border-radius:15px;background:rgba(255,255,255,.035);padding:11px;margin-bottom:8px}.detail h3{color:#dbeafe}.kv{display:grid;grid-template-columns:120px 1fr;gap:6px;font-size:12px}.kv b{color:#cbd5e1}.list{margin:0;padding-left:18px}.list li{margin:3px 0}.btn{border:0;border-radius:11px;background:linear-gradient(135deg,#7c3aed,#2563eb);color:white;font-weight:900;padding:8px 10px;cursor:pointer}.btn.secondary{background:rgba(255,255,255,.07);border:1px solid var(--line)}
+.op{border:1px solid var(--line);border-radius:14px;background:rgba(255,255,255,.035);padding:10px}.op b{color:#dbeafe}.op p{margin:5px 0;font-size:12px;color:#cbd5e1}
+.timeline{display:grid;grid-template-columns:repeat(7,1fr);gap:8px}.tl{border:1px solid var(--line);border-radius:14px;background:rgba(255,255,255,.035);padding:10px}.tl b{display:block}.tl span{font-size:11px;color:var(--muted)}
+.storeItem,.respItem{display:flex;justify-content:space-between;gap:10px;align-items:center;border:1px solid var(--line);border-radius:12px;padding:9px;background:rgba(255,255,255,.035);margin:6px 0}.faq{display:grid;grid-template-columns:330px 1fr;gap:12px}.qList button{width:100%;text-align:left;margin:4px 0;border:1px solid var(--line);border-radius:11px;padding:9px;color:var(--ink);background:rgba(255,255,255,.04);cursor:pointer}.qList button.active{border-color:var(--purple);background:rgba(167,139,250,.11)}
+@media(max-width:1200px){.app{grid-template-columns:1fr}.side{position:relative;height:auto}.scenarios{grid-template-columns:repeat(2,1fr)}.storyHero,.flowPanel,.two,.three,.four,.faq{grid-template-columns:1fr}.chapterWrap,.timeline{grid-template-columns:1fr}.inspect{position:relative;top:0}}
+</style>
+</head>
+<body>
+<div class="app">
+<aside class="side">
+  <div class="logo"><div class="mark">E</div><div><b>EVEREST</b><div class="muted tiny">Customer Story Explorer</div></div></div>
+  <div class="muted tiny">View as</div>
+  <button class="role active" data-role="customer" onclick="setRole('customer')"><strong>👤 Customer</strong><span>Why do I care?</span></button>
+  <button class="role" data-role="qa" onclick="setRole('qa')"><strong>🧪 QA</strong><span>What should I test?</span></button>
+  <button class="role" data-role="developer" onclick="setRole('developer')"><strong>🛠 Developer</strong><span>APIs & contracts</span></button>
+  <button class="role" data-role="architect" onclick="setRole('architect')"><strong>🏛 Architect</strong><span>Control and ownership</span></button>
+  <button class="sideBtn" onclick="play()">▶ Play Story</button>
+  <button class="sideBtn" onclick="resetView()">↻ Reset</button>
+</aside>
+<main class="main">
+<header class="top">
+  <div><h1>EVEREST Interactive Customer Story — Azure Blob</h1><div class="muted">Business problem → customer action → DSPM/AI reasoning → Guardian decision → evidence → outcome.</div></div>
+  <span class="pill blue">Click scenario, chapter, or sequence step</span>
+</header>
+<div class="wrap">
+  <section class="card">
+    <h2>1. Choose the customer scenario</h2>
+    <div class="scenarios" id="scenarios"></div>
+  </section>
+
+  <section class="storyHero" style="margin-top:12px">
+    <div class="card">
+      <h2 id="storyTitle">Customer Story: Unknown sensitive data in Azure Blob</h2>
+      <p class="muted" id="storySummary"></p>
+      <div class="chapterWrap" id="chapters"></div>
+    </div>
+    <div class="card">
+      <h2>Business outcome</h2>
+      <div class="grid two">
+        <div class="kpi"><label>Customer wins</label><strong id="winKpi">Audit-ready proof</strong></div>
+        <div class="kpi"><label>Risk avoided</label><strong id="riskKpi">Unsafe movement</strong></div>
+        <div class="kpi"><label>Automation</label><strong id="autoKpi">Policy-guided</strong></div>
+        <div class="kpi"><label>Human review</label><strong id="hitlKpi">Only when needed</strong></div>
+      </div>
+      <div id="roleNarrative" class="detail" style="margin-top:10px"></div>
+    </div>
+  </section>
+
+  <section class="flowPanel">
+    <div class="swim"><div class="lanes" id="swimlanes"></div></div>
+    <aside class="inspect">
+      <div class="card">
+        <h2 id="inspectTitle">Inspect</h2>
+        <div id="inspectContent"></div>
+      </div>
+    </aside>
+  </section>
+
+  <section class="grid two" style="margin-top:12px">
+    <div class="card">
+      <h2>2. Why DSPM, classification and AI exist</h2>
+      <div class="grid four" id="whyOps"></div>
+    </div>
+    <div class="card">
+      <h2>3. End-to-end story timeline</h2>
+      <div class="timeline" id="timeline"></div>
+    </div>
+  </section>
+
+  <section class="grid three" style="margin-top:12px">
+    <div class="card">
+      <h2>4. Customer wins</h2>
+      <ul class="list" id="wins"></ul>
+    </div>
+    <div class="card">
+      <h2>5. Risk if customer takes no action</h2>
+      <ul class="list" id="risks"></ul>
+    </div>
+    <div class="card">
+      <h2>6. Where the information goes</h2>
+      <div id="stores"></div>
+    </div>
+  </section>
+
+  <section class="grid two" style="margin-top:12px">
+    <div class="card">
+      <h2>7. Responsibilities and access</h2>
+      <div id="responsibilities"></div>
+    </div>
+    <div class="card">
+      <h2>8. Technical / non-technical Q&A</h2>
+      <div class="faq"><div id="questions" class="qList"></div><div id="answer" class="detail"></div></div>
+    </div>
+  </section>
+</div>
+</main>
+</div>
+<script>
+const lanes=['User','Portal / UI','Control Plane','Orchestrator','Item 13','Connector','Azure Blob','DuckDB Working Memory','DSPM / AI','Guardian','Action Executor','Evidence / Search'];
+function esc(v){return String(v??'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'","&#039;")}
+function pill(v,type='blue'){return `<span class="pill ${type}">${esc(v)}</span>`}
+function st(n,title,from,to,api,input,owner,consumer,out,why,customer,low){return{n,title,from,to,api,input,owner,consumer,out,why,customer,low}}
+const scenarios={
+happy:{
+ label:'Unknown Sensitive Data',sub:'Discover → classify → prove',type:'positive',
+ title:'Customer Story: “We do not know what sensitive data exists in Azure Blob.”',
+ summary:'A customer has many containers and objects. They need to discover what exists, classify sensitive data, get AI-assisted recommendations, safely tag allowed objects, and produce evidence for audit.',
+ win:'Audit-ready proof',risk:'Hidden sensitive data',auto:'Auto-tag safe items',hitl:'Risky items only',
+ chapters:[
+  ['Problem','Customer lacks visibility into Azure Blob data footprint and sensitive data exposure.'],
+  ['Source setup','Customer connects Azure Blob without exposing raw secrets in the portal.'],
+  ['DSPM scan','EVEREST scans metadata and selected features to find risk signals.'],
+  ['AI assist','AI explains findings and proposes safe tags or review tasks.'],
+  ['Guardian gate','Guardian enforces policy before any write-back or region action.'],
+  ['Evidence','Customer gets proof: manifest, provenance, action receipt, audit.']
+ ],
+ steps:[
+  st(1,'Customer chooses Azure Blob source',0,1,'UI action','storage account, container, scope','Customer','Portal','Intent captured','Customer starts because unmanaged object stores create audit and data-risk blind spots.','Customer wants visibility and proof without manually reviewing every file.','UI prepares a request envelope; no connector action yet.'),
+  st(2,'Portal creates request envelope',1,3,'POST /v1/requests/envelope','tenant, actor, role, source, intent, scope','Portal','Orchestrator','Envelope accepted','All runtime work must enter the Orchestrator, so Workbench cannot bypass controls.','Customer gets a governed, repeatable process instead of one-off scripts.','Envelope becomes the common contract for all connectors.'),
+  st(3,'Orchestrator registers source/job/lease',3,2,'POST /v1/jobs + /v1/leases','source_id, connector_id, policy_context','Orchestrator','Control Plane','Job + lease created','Control Plane owns state and audit; Data Agent only runs assigned work.','Customer can track who requested what and when.','Control Plane stores source/job/lease, not raw customer content.'),
+  st(4,'Item 13 resolves trusted policy bundle',3,4,'GET /v1/policy/latest','policy ref, artifact hash, signature','Orchestrator','Item 13','Trusted policy or LKG','Prevents tampered or unknown policy from driving customer data actions.','Customer can prove which policy version was used.','Item 13 verifies hash/signature and returns trust status.'),
+  st(5,'Connector discovers Azure Blob metadata',3,5,'connector.discover(scope)','container, prefix, page token','Orchestrator','Connector Adapter','Discovery batches','Discovery is metadata-first and zero-copy by default.','Customer gets visibility without copying all data.','Connector uses Azure SDK/list APIs and returns normalized references.'),
+  st(6,'Azure Blob is read in place',5,6,'Azure list/read properties','object refs, metadata request','Connector','Azure Blob','metadata/tags/ACL signals','Data stays close to source; full object copies are avoided by default.','Customer reduces data movement risk and cost.','Only allowed metadata or bounded features are read.'),
+  st(7,'DuckDB aggregates transient signals',3,7,'local batch write','normalized rows, scores, checkpoints','Orchestrator','DuckDB','Batch state and aggregates','Large scans need local working memory for speed and retry/resume.','Customer gets scalable processing without central file transfer.','DuckDB is transient working memory, not permanent content storage.'),
+  st(8,'DSPM classifies risk signals',7,8,'classify(batch)','metadata, patterns, features','Orchestrator','DSPM / AI','classification + risk','DSPM identifies sensitive data, policy violations, and likely remediation.','Customer learns what is risky and why.','Rule-based classification can run before advanced model use.'),
+  st(9,'AI explains and recommends actions',8,8,'ai.recommend(context)','findings, policy, evidence refs','DSPM / AI','Orchestrator','recommendation only','AI improves understanding but cannot mutate data directly.','Customer gets plain-English rationale and recommended next steps.','AI output becomes advisory input, not execution authority.'),
+  st(10,'Guardian evaluates action request',3,9,'POST /v1/guardian/decision','policy hash, rules, risk, action, boundary','Orchestrator','Guardian','allow / deny / hitl / obligations','Guardian is non-bypassable before mutation.','Customer knows unsafe actions are blocked by policy.','Decision includes policy hash, rules, obligations, HITL flag.'),
+  st(11,'Allowed safe tags are applied',9,10,'connector.applyAction','decision_id, object refs, tag payload','Guardian / Orchestrator','Action Executor','action receipt','Only approved metadata/index tag operations execute.','Customer automates low-risk remediation safely.','Action receipt records status and hash.'),
+  st(12,'Evidence and provenance are published',3,11,'POST /v1/evidence/summary','manifest, provenance, action receipts','Orchestrator','Evidence / Search','audit-ready evidence','Evidence proves what happened and why.','Customer can answer audits and reduce manual effort.','Summary/index goes to Elasticsearch; raw content is minimized.')
+ ]},
+ai:{
+ label:'AI Recommendation',sub:'Explain → suggest → HITL',type:'positive',
+ title:'Customer Story: “Can the system help me decide what action to take?”',
+ summary:'AI helps explain risk, summarize findings, suggest metadata tags, and prefill HITL tasks. AI never directly mutates data.',
+ win:'Faster decisions',risk:'Manual analysis',auto:'Suggest only',hitl:'Prefill review',
+ chapters:[
+  ['Problem','Customer sees findings but needs understandable recommendations.'],
+  ['Context','EVEREST gathers policy, risk, object metadata and evidence references.'],
+  ['AI assist','AI explains why an item is risky and suggests safe next steps.'],
+  ['Policy boundary','AI output is advisory and cannot execute mutation.'],
+  ['Guardian','Guardian decides if recommendation is allowed, modified or HITL.'],
+  ['Evidence','Recommendation, decision and receipt are recorded.']
+ ],
+ steps:[
+  st(1,'Customer asks for recommendation',0,1,'UI Ask AI','object refs, finding ids','Customer','Portal','AI request','Customer needs guidance, not just raw findings.','Customer reduces expert dependency.','Request is routed through Orchestrator context.'),
+  st(2,'Orchestrator builds context',1,3,'POST /v1/ai/recommendation','policy, risk, metadata, evidence refs','Portal','Orchestrator','bounded context','AI should see enough context, not secrets or full files by default.','Customer protects sensitive data.','Orchestrator filters inputs based on policy.'),
+  st(3,'AI drafts recommendation',3,8,'ai.recommend','redacted findings and metadata','Orchestrator','DSPM / AI','recommendation','AI suggests classification/tag/HITL path.','Customer gets clear rationale.','AI has no action-execution authority.'),
+  st(4,'Guardian evaluates recommendation',3,9,'POST /v1/guardian/decision','recommendation, policy hash, action','Orchestrator','Guardian','allow/review/block','Guardian is the enforcement point, not AI.','Customer prevents unsafe automation.','Guardian may require HITL or obligations.'),
+  st(5,'HITL task or safe action created',9,10,'POST /v1/tasks or applyAction','decision_id, obligations','Guardian','Action Executor / Task Service','task or receipt','Risky actions go to humans; safe actions may automate.','Customer balances speed with control.','Receipt/provenance links recommendation to decision.'),
+  st(6,'Evidence records AI boundary',3,11,'POST /v1/evidence/summary','recommendation, decision, receipt','Orchestrator','Evidence / Search','audit proof','Shows AI recommended but did not bypass policy.','Customer can explain AI governance.','Provenance stores policy hash and actor context.')
+ ]},
+negative:{
+ label:'Blocked Region Transfer',sub:'India → UAE',type:'negative',
+ title:'Customer Story: “A team wants to move sensitive data to another region.”',
+ summary:'EVEREST detects that India → UAE movement is not allowed by policy. Guardian blocks the action and creates evidence/HITL.',
+ win:'Policy enforced',risk:'Legal exposure',auto:'Block',hitl:'Required',
+ chapters:[
+  ['Problem','A region movement may violate residency policy.'],
+  ['Intent','Customer or workflow requests migration.'],
+  ['Policy','Item 13 provides trusted policy bundle.'],
+  ['Guardian','Guardian checks region, risk and action type.'],
+  ['Block','Action Executor receives no executable allow decision.'],
+  ['Evidence','Blocked attempt is recorded for audit.']
+ ],
+ steps:[
+  st(1,'Migration intent submitted',0,1,'POST /v1/requests/envelope','operation=migration, source=IN, target=AE','Customer','Portal','intent captured','Customer may not know the transfer is non-compliant.','Customer avoids accidental violation.','Request has data boundary and actor context.'),
+  st(2,'Orchestrator builds decision context',1,3,'POST /v1/orchestrator/context','object refs, region, policy context','Portal','Orchestrator','context built','Policy decisions need full context, not only operation name.','Customer gets accurate governance.','Context includes source, target, object risk.'),
+  st(3,'Item 13 verifies residency policy',3,4,'GET /v1/policy/latest','policy bundle hash/signature','Orchestrator','Item 13','trusted policy','Decision must use trusted policy version.','Customer can prove policy basis.','Policy hash is included in decision.'),
+  st(4,'Guardian blocks region transfer',3,9,'POST /v1/guardian/decision','IN→AE, policy hash, rules','Orchestrator','Guardian','BLOCK + HITL','Guardian stops non-compliant mutation.','Customer avoids unauthorized transfer and fines.','Decision includes rules, reasoning, HITL flag.'),
+  st(5,'Action Executor receives no allow',9,10,'no executable action','decision=BLOCK','Guardian','Action Executor','nothing executed','Fail-closed behavior.','Customer data remains in allowed boundary.','Executor rejects missing/blocked decision.'),
+  st(6,'Evidence records blocked attempt',3,11,'POST /v1/evidence/summary','decision, reason, actor, policy hash','Orchestrator','Evidence / Search','audit proof','Blocked attempts must be auditable too.','Customer can show compliance enforcement.','Provenance records outcome and obligations.')
+ ]}
+};
+const ops=[
+ ['DSPM','Why it exists','Finds unknown sensitive data, risky locations, poor ownership, and compliance hotspots before action is taken.'],
+ ['Classification','Why we classify','Turns raw objects into business/security meaning: contract, HR, finance, PII, confidential, public, internal.'],
+ ['AI Recommendation','Why AI suggests','Explains findings in plain language and proposes safe next steps; it cannot execute actions directly.'],
+ ['Guardian','Why policy gate exists','Prevents unsafe or non-compliant mutation. Allows, modifies, denies, or sends to HITL.']
+];
+const stores=[
+ ['Control Plane DB','source, job, lease, audit summary'],
+ ['DuckDB Working Memory','transient normalized signals, batches, checkpoints'],
+ ['Elasticsearch / Search','aggregated summaries, normalized signals, evidence references'],
+ ['Evidence Store','manifest, action receipt, provenance, export package'],
+ ['Git / Policy Store','signed policy and workflow artifacts'],
+ ['Customer Source','Azure Blob data remains in source by default']
+];
+const resp=[
+ ['Customer / Operator','Submits intent, reviews evidence, approves HITL when required.'],
+ ['Orchestrator','Mandatory runtime entry point. Builds context and coordinates every step.'],
+ ['Item 13','Verifies signed policy/workflow artifacts and LKG fallback.'],
+ ['Connector Adapter','Discovers and reads Azure Blob through normalized connector contract.'],
+ ['DSPM / AI','Classifies, explains, recommends. Does not mutate.'],
+ ['Guardian Agent','Owns decision provenance and non-bypassable mutation gate.']
+];
+const qas=[
+ ['Why does customer start this flow?','Because they do not know what data exists, which data is sensitive, whether it violates policy, and what actions are safe to take.'],
+ ['Why do we classify?','Classification converts storage metadata/content signals into understandable categories like PII, HR, finance, contract, confidential, public or internal.'],
+ ['Why DSPM?','DSPM gives data security posture: where sensitive data is, why it is risky, who owns it, what movement is allowed, and what remediation is recommended.'],
+ ['Why does AI suggest anything?','AI helps explain and recommend. It summarizes findings, suggests tags, drafts HITL context and helps humans decide faster. It never directly mutates data.'],
+ ['Where does Guardian sit?','Guardian is called after enough context exists and before any mutation. If Guardian is unavailable, mutation fails closed.'],
+ ['What happens to sensitive files?','Raw full content is not copied by default. Everest uses metadata, references, range reads, bounded previews and redacted features unless policy allows more.'],
+ ['Who updates permanent storage?','Control Plane owns permanent records. Data Agent writes local transient state and uploads governed evidence/results to Control Plane/search.'],
+ ['What if the customer does nothing?','They keep unknown sensitive data, weak audit trails, possible illegal movement, manual analysis cost and AI/data-quality risk.'],
+ ['How will other connectors fit?','They will implement the same connector contract: discover, normalize, classify, act with Guardian approval, and publish evidence.'],
+ ['What should QA test?','Happy path, blocked region transfer, policy signature failure/LKG, Guardian unavailable, permission denied, rate limit, agent failure, reset/rerun, and evidence/provenance output.']
+];
+const timeline=[
+ ['Intent','Customer asks what data exists and what is safe.'],
+ ['Policy','Trusted policy/workflow is resolved.'],
+ ['Discover','Connector reads metadata in place.'],
+ ['Classify','DSPM and rules identify risk.'],
+ ['Recommend','AI explains and suggests next steps.'],
+ ['Decide','Guardian allows, blocks, modifies or HITL.'],
+ ['Prove','Evidence, provenance and audit are published.']
+];
+
+let current='happy',activeStep=0,currentRole='customer',timer=null,activeChapter=0;
+function renderScenarios(){document.getElementById('scenarios').innerHTML=Object.entries(scenarios).map(([k,s])=>`<button class="scenario ${s.type==='negative'?'neg':''} ${k===current?'active':''}" onclick="selectScenario('${k}')"><strong>${esc(s.label)}</strong><span>${esc(s.sub)}</span></button>`).join('')}
+function renderStory(){
+ const s=scenarios[current]; document.getElementById('storyTitle').textContent=s.title; document.getElementById('storySummary').textContent=s.summary;
+ document.getElementById('winKpi').textContent=s.win; document.getElementById('riskKpi').textContent=s.risk; document.getElementById('autoKpi').textContent=s.auto; document.getElementById('hitlKpi').textContent=s.hitl;
+ document.getElementById('chapters').innerHTML=s.chapters.map((c,i)=>`<div class="chapter ${i===activeChapter?'active':''}" onclick="chapter(${i})"><span class="num">${i+1}</span><b>${esc(c[0])}</b><span>${esc(c[1])}</span></div>`).join('');
+ roleNarrative();
+}
+function chapter(i){activeChapter=i;renderStory()}
+function roleNarrative(){
+ const s=scenarios[current]; const c=s.chapters[activeChapter];
+ const map={
+  customer:`<h3>${esc(c[0])}</h3><p>${esc(c[1])}</p><p><b>Customer view:</b> What do I gain, what risk is reduced, and what proof do I get?</p>`,
+  qa:`<h3>${esc(c[0])}</h3><p>${esc(c[1])}</p><p><b>QA view:</b> Validate input, expected output, failure path, evidence, and no console/API breakage.</p>`,
+  developer:`<h3>${esc(c[0])}</h3><p>${esc(c[1])}</p><p><b>Developer view:</b> Check API contract, producer/consumer, data contract, and persistence side effect.</p>`,
+  architect:`<h3>${esc(c[0])}</h3><p>${esc(c[1])}</p><p><b>Architect view:</b> Confirm Orchestrator-first control, Guardian enforcement, zero-copy boundary, and provenance ownership.</p>`
+ };
+ document.getElementById('roleNarrative').innerHTML=map[currentRole];
+}
+function renderSwim(){
+ const s=scenarios[current];
+ const head=`<div class="laneHead"><div>Step</div>${lanes.map((l,i)=>`<div>${i+1}<br>${esc(l)}</div>`).join('')}</div>`;
+ const rows=s.steps.map((st,i)=>{
+  const low=Math.min(st.from,st.to), high=Math.max(st.from,st.to);
+  const cells=lanes.map((_,idx)=>{
+    let content='';
+    if(idx===st.from || idx===st.to){
+      content=`<div class="stepBox ${i===activeStep?'active':''}" onclick="inspect(${i})"><b>${idx===st.from?'Producer':'Consumer'}</b><br>${esc(st.title)}<br><span class="muted">${esc(st.api)}</span></div>`;
+    }else if(idx>low && idx<high){content=`<div class="arrow ${s.type==='negative'?'orange':'green'}"></div>`}
+    return `<div class="cell">${content}</div>`;
+  }).join('');
+  return `<div class="row ${s.type==='negative'?'neg':''}"><div class="num"><span class="bubble">${st.n}</span></div>${cells}</div>`
+ }).join('');
+ document.getElementById('swimlanes').innerHTML=head+rows;
+}
+function inspect(i){
+ activeStep=i; const st=scenarios[current].steps[i];
+ document.getElementById('inspectTitle').textContent=`Inspect Step ${st.n}: ${st.title}`;
+ document.getElementById('inspectContent').innerHTML=`
+ <div class="detail"><h3>Customer reason</h3><p>${esc(st.customer)}</p></div>
+ <div class="detail"><h3>High-level explanation</h3><p>${esc(st.why)}</p></div>
+ <div class="detail"><h3>Low-level technical detail</h3><p>${esc(st.low)}</p></div>
+ <div class="detail"><h3>API / contract</h3>${pill(st.api,'blue')}<div class="kv" style="margin-top:8px"><b>Input</b><span>${esc(st.input)}</span><b>Producer</b><span>${esc(st.owner)}</span><b>Consumer</b><span>${esc(st.consumer)}</span><b>Output</b><span>${esc(st.out)}</span></div></div>`;
+ renderSwim();
+}
+function renderOps(){document.getElementById('whyOps').innerHTML=ops.map(o=>`<div class="op"><b>${esc(o[0])}</b><p><b>${esc(o[1])}</b></p><p>${esc(o[2])}</p></div>`).join('')}
+function renderTimeline(){document.getElementById('timeline').innerHTML=timeline.map((t,i)=>`<div class="tl"><span class="pill blue">${i+1}</span><b>${esc(t[0])}</b><span>${esc(t[1])}</span></div>`).join('')}
+function renderOutcomes(){
+ const neg=scenarios[current].type==='negative';
+ const wins=neg?['Unsafe action is stopped','Reason and policy are visible','HITL or recovery path is clear','Audit record is preserved','Customer avoids hidden compliance risk']:['Faster data discovery','Sensitive data is classified','AI explains what to do next','Safe actions can be automated','Evidence is ready for audit','Future connectors can reuse the pattern'];
+ const risks=['Unknown sensitive data remains hidden','Policy violations or region breach','Manual review delays and cost','Poor AI/data quality from ungoverned data','No audit trail during investigation','Unsafe mutation without approval'];
+ document.getElementById('wins').innerHTML=wins.map(x=>`<li>✅ ${esc(x)}</li>`).join('');
+ document.getElementById('risks').innerHTML=risks.map(x=>`<li>⚠️ ${esc(x)}</li>`).join('');
+}
+function renderStores(){document.getElementById('stores').innerHTML=stores.map(s=>`<div class="storeItem"><div><b>${esc(s[0])}</b><div class="muted tiny">${esc(s[1])}</div></div>${pill(s[2],'purple')}</div>`).join('')}
+function renderResp(){document.getElementById('responsibilities').innerHTML=resp.map(r=>`<div class="respItem"><div><b>${esc(r[0])}</b><div class="muted tiny">${esc(r[1])}</div></div></div>`).join('')}
+function renderQas(){document.getElementById('questions').innerHTML=qas.map((q,i)=>`<button class="${i===0?'active':''}" onclick="showAnswer(${i},this)">${esc(q[0])}</button>`).join('');showAnswer(0,document.querySelector('#questions button'))}
+function showAnswer(i,btn){document.querySelectorAll('#questions button').forEach(b=>b.classList.remove('active'));btn?.classList.add('active');document.getElementById('answer').innerHTML=`<h3>${esc(qas[i][0])}</h3><p>${esc(qas[i][1])}</p>`}
+function selectScenario(k){current=k;activeStep=0;activeChapter=0;renderScenarios();renderStory();renderSwim();inspect(0);renderOutcomes()}
+function setRole(r){currentRole=r;document.querySelectorAll('.role').forEach(x=>x.classList.remove('active'));document.querySelector(`[data-role="${r}"]`).classList.add('active');roleNarrative()}
+function play(){clearInterval(timer);let i=0;inspect(0);timer=setInterval(()=>{i++;if(i>=scenarios[current].steps.length){clearInterval(timer);return}inspect(i)},1300)}
+function resetView(){clearInterval(timer);selectScenario('happy')}
+renderScenarios();renderStory();renderSwim();inspect(0);renderOps();renderTimeline();renderOutcomes();renderStores();renderResp();renderQas();
+</script>
+</body>
+</html>

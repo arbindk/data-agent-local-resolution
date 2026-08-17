@@ -3,29 +3,43 @@ package api
 import (
 	"encoding/json"
 	"net/http"
+	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 
+	aiproviders "everest.local/data-agent-policy-resolver/internal/ai/providers"
 	"everest.local/data-agent-policy-resolver/internal/config"
 	"everest.local/data-agent-policy-resolver/internal/connectors/azureblob"
+	"everest.local/data-agent-policy-resolver/internal/controlplane"
 	"everest.local/data-agent-policy-resolver/internal/execution"
 	"everest.local/data-agent-policy-resolver/internal/localstore/duckdbstore"
+	"everest.local/data-agent-policy-resolver/internal/pluginruntime"
 	"everest.local/data-agent-policy-resolver/internal/policyresolver"
+	"everest.local/data-agent-policy-resolver/internal/portalstate"
+	"everest.local/data-agent-policy-resolver/internal/searchindex"
 	"everest.local/data-agent-policy-resolver/internal/secretstore"
 )
 
 type Server struct {
-	cfg              config.Config
-	resolver         *policyresolver.Resolver
-	orchestrator     *execution.Orchestrator
-	store            *duckdbstore.Store
-	azureConfigStore *azureblob.RuntimeConfigStore
-	secrets          *secretstore.Store
+	cfg                config.Config
+	resolver           *policyresolver.Resolver
+	orchestrator       *execution.Orchestrator
+	store              *duckdbstore.Store
+	azureConfigStore   *azureblob.RuntimeConfigStore
+	aiConfigStore      *aiproviders.RuntimeConfigStore
+	runtimeAudit       *pluginruntime.Store
+	scanJobs           *controlplane.AzureBlobScanJobStore
+	portalState        *portalstate.Store
+	secrets            *secretstore.Store
+	searchIndex        *searchindex.ConfiguredIndex
+	azureBlobConnector azureBlobConnectorPort
 }
 
 func NewServer(cfg config.Config, resolver *policyresolver.Resolver, orchestrator *execution.Orchestrator, store *duckdbstore.Store) *Server {
 	initialAzureConfig := azureblob.Config{
 		ConnectionString: "",
+		StorageAccount:   cfg.AzureStorageAccount,
 		ContainerName:    cfg.AzureBlobContainer,
 		Prefix:           cfg.AzureBlobPrefix,
 		DataStoreID:      cfg.AzureBlobDataStoreID,
@@ -33,20 +47,78 @@ func NewServer(cfg config.Config, resolver *policyresolver.Resolver, orchestrato
 		ActionMode:       cfg.AzureActionMode,
 		WritebackEnabled: cfg.AzureWritebackEnabled,
 	}
+	initialAIConfig := aiproviders.Config{
+		ProviderID:                cfg.AIProviderID,
+		EndpointURL:               cfg.AIProviderEndpoint,
+		Model:                     cfg.AIProviderModel,
+		DeploymentName:            cfg.AIProviderDeploymentName,
+		AuthScheme:                cfg.AIProviderAuthScheme,
+		NetworkMode:               cfg.AINetworkMode,
+		AutomationMode:            cfg.AIAutomationMode,
+		RedactionMode:             cfg.AIRedactionMode,
+		PromptAuditEnabled:        cfg.AIPromptAuditEnabled,
+		EvidenceGroundingRequired: cfg.AIEvidenceGroundingRequired,
+		AllowHITLSubmission:       cfg.AIAllowHITLSubmission,
+		AllowAutonomousApply:      cfg.AIAllowAutonomousApply,
+	}
 
-	secretStore := secretstore.New()
+	secretStore := secretstore.NewWithOptions(secretstore.Options{
+		Provider:  cfg.SecretStoreProvider,
+		FilePath:  cfg.SecretStoreFilePath,
+		EnvPrefix: cfg.SecretStoreEnvPrefix,
+	})
+	portalStateStore := portalstate.New(cfg.PortalStatePath)
+	searchIndexPublisher := searchindex.NewConfiguredIndex(searchindex.FromAppConfig(cfg), portalStateStore)
+	if orchestrator != nil {
+		orchestrator.SetSearchIndex(searchIndexPublisher)
+	}
 
 	if cfg.AzureStorageConnectionString != "" && !secretStore.Exists(azureblob.ConnectionStringSecretName) {
 		_ = secretStore.Save(azureblob.ConnectionStringSecretName, cfg.AzureStorageConnectionString)
 	}
+	if cfg.AzureStorageConnectionString != "" {
+		sourceSecret := azureblob.SourceCredentialSecretName(firstNonBlank(cfg.AzureBlobDataStoreID, cfg.AzureStorageAccount, "azureblob-local"))
+		if !secretStore.Exists(sourceSecret) {
+			_ = secretStore.Save(sourceSecret, cfg.AzureStorageConnectionString)
+		}
+	}
+	if cfg.AIProviderAPIKey != "" && !secretStore.Exists(aiproviders.SecretName(cfg.AIProviderID, "api_key")) {
+		_ = secretStore.Save(aiproviders.SecretName(cfg.AIProviderID, "api_key"), cfg.AIProviderAPIKey)
+	}
+	portalStateStore.UpsertAzureSource(portalstate.AzureSource{
+		SourceID:         cfg.AzureBlobDataStoreID,
+		DataStoreID:      cfg.AzureBlobDataStoreID,
+		DisplayName:      "Azure Blob - " + cfg.AzureBlobDataStoreID,
+		ConnectorID:      "azureblob",
+		DeploymentMode:   "cloud_connected",
+		StorageAccount:   cfg.AzureStorageAccount,
+		Container:        cfg.AzureBlobContainer,
+		Prefix:           cfg.AzureBlobPrefix,
+		ActionMode:       cfg.AzureActionMode,
+		WritebackEnabled: cfg.AzureWritebackEnabled,
+		CredentialSet:    secretStore.Exists(azureblob.SourceCredentialSecretName(firstNonBlank(cfg.AzureBlobDataStoreID, cfg.AzureStorageAccount, "azureblob-local"))) || cfg.AzureStorageConnectionString != "",
+	})
+	portalStateStore.UpsertAIProvider(portalstate.AIProvider{
+		ProviderID:    cfg.AIProviderID,
+		Model:         cfg.AIProviderModel,
+		NetworkMode:   cfg.AINetworkMode,
+		Configured:    true,
+		CredentialSet: secretStore.Exists(aiproviders.SecretName(cfg.AIProviderID, "api_key")) || cfg.AIProviderAPIKey != "",
+	})
 
 	return &Server{
-		cfg:              cfg,
-		resolver:         resolver,
-		orchestrator:     orchestrator,
-		store:            store,
-		azureConfigStore: azureblob.NewRuntimeConfigStore(initialAzureConfig),
-		secrets:          secretStore,
+		cfg:                cfg,
+		resolver:           resolver,
+		orchestrator:       orchestrator,
+		store:              store,
+		azureConfigStore:   azureblob.NewRuntimeConfigStore(initialAzureConfig),
+		aiConfigStore:      aiproviders.NewRuntimeConfigStore(initialAIConfig),
+		runtimeAudit:       pluginruntime.NewStore(500),
+		scanJobs:           controlplane.NewAzureBlobScanJobStoreWithPath(cfg.AzureBlobScanJobsPath),
+		portalState:        portalStateStore,
+		secrets:            secretStore,
+		searchIndex:        searchIndexPublisher,
+		azureBlobConnector: defaultAzureBlobConnector{},
 	}
 }
 
@@ -56,25 +128,76 @@ func (s *Server) Routes() http.Handler {
 	mux.HandleFunc("/v1/connectors/azureblob/config", s.azureBlobConfigHandler)
 	mux.HandleFunc("/v1/connectors/azureblob/test", s.testAzureBlob)
 	mux.HandleFunc("/v1/connectors/azureblob/scan", s.scanAzureBlob)
+	mux.HandleFunc("/v1/scan/azureblob/jobs", s.azureBlobAsyncScanJobs)
+	mux.HandleFunc("/v1/scan/azureblob/jobs/", s.azureBlobAsyncScanJobByID)
 	mux.HandleFunc("/v1/connectors/azureblob/status", s.azureBlobStatus)
 	mux.HandleFunc("/v1/connectors/azureblob/containers", s.listAzureBlobContainers)
+	mux.HandleFunc("/v1/connectors/azureblob/writeback", s.azureBlobWriteback)
+	mux.HandleFunc("/v1/connectors/azureblob/writeback/apply-approved", s.applyApprovedAzureBlobWritebacks)
+	mux.HandleFunc("/v1/connectors/azureblob/actions/execute", s.azureBlobActionExecute)
+	mux.HandleFunc("/v1/tools/azureblob/workbench", s.azureBlobWorkbench)
+	mux.HandleFunc("/v1/connectors/catalog", s.connectorCatalog)
+	mux.HandleFunc("/v1/connectors/manifest/validate", s.validateConnectorManifest)
+	mux.HandleFunc("/v1/connectors/runtime/invoke", s.connectorRuntimeInvoke)
+	mux.HandleFunc("/v1/ai/providers/catalog", s.aiProviderCatalog)
+	mux.HandleFunc("/v1/ai/providers/manifest/validate", s.validateAIProviderManifest)
+	mux.HandleFunc("/v1/ai/providers/config", s.aiProviderConfigHandler)
+	mux.HandleFunc("/v1/ai/providers/test", s.testAIProvider)
+	mux.HandleFunc("/v1/ai/runtime/invoke", s.aiRuntimeInvoke)
+	mux.HandleFunc("/v1/ai/azureblob/recommendations", s.azureBlobAIRecommendations)
+	mux.HandleFunc("/v1/dspm/catalog", s.dspmCatalog)
+	mux.HandleFunc("/v1/dspm/content-scan", s.dspmContentScan)
+	mux.HandleFunc("/v1/runtime/audit", s.runtimeAuditHistory)
+	mux.HandleFunc("/v1/plugins/contract-test", s.pluginContractTest)
+	mux.HandleFunc("/v1/auth/login", s.authLogin)
+	mux.HandleFunc("/v1/auth/register", s.authRegister)
+	mux.HandleFunc("/v1/auth/users", s.authUsers)
+	mux.HandleFunc("/v1/auth/logout", s.authLogout)
+	mux.HandleFunc("/v1/auth/session", s.authSession)
+	mux.HandleFunc("/v1/portal/options", s.portalOptions)
+	mux.HandleFunc("/v1/evidence", s.portalEvidence)
+	mux.HandleFunc("/v1/evidence/package", s.enterpriseEvidencePackage)
+	mux.HandleFunc("/v1/data-passports/", s.dataPassportByID)
+	mux.HandleFunc("/v1/data-passports", s.dataPassports)
+	mux.HandleFunc("/v1/search", s.search)
+	mux.HandleFunc("/v1/audit/events", s.portalAuditEvents)
+	mux.HandleFunc("/v1/actions/history", s.portalActionHistory)
+	mux.HandleFunc("/v1/actions/pending", s.portalActionHistory)
 
 	mux.HandleFunc("/healthz", s.health)
 
+	mux.HandleFunc("/v1/agent/runtime/status", s.agentRuntimeStatus)
+
 	mux.HandleFunc("/v1/policy/resolve", s.resolvePolicy)
+	mux.HandleFunc("/v1/policy/artifact/trust", s.policyArtifactTrust)
 	mux.HandleFunc("/v1/policy/active/", s.getActivePolicy)
 	mux.HandleFunc("/v1/policy/simulate/git-unavailable", s.gitUnavailable)
 	mux.HandleFunc("/v1/policy/simulate/git-available", s.gitAvailable)
 
+	mux.HandleFunc("/v1/execution/azureblob/start", s.startAzureBlobExecution)
 	mux.HandleFunc("/v1/execution/start", s.startExecution)
 	mux.HandleFunc("/v1/execution/", s.executionByID)
+
+	mux.HandleFunc("/v1/localstore/tables", s.localStoreTables)
+	mux.HandleFunc("/v1/localstore/normalized-files", s.normalizedFilesView)
+
+	mux.HandleFunc("/v1/analytics/quick-scan", s.quickScanAnalytics)
+	mux.HandleFunc("/v1/analytics/enterprise-posture", s.enterprisePosture)
+	mux.HandleFunc("/v1/playbooks/enterprise", s.enterprisePlaybooks)
+
+	mux.HandleFunc("/v1/actions/plan", s.actionPlan)
+	mux.HandleFunc("/v1/guardian/decisions", s.guardianDecisions)
+
+	mux.HandleFunc("/v1/leases/current", s.currentLeaseView)
+	mux.HandleFunc("/v1/controlplane/run-next-lease", s.runNextControlPlaneLease)
 	mux.HandleFunc("/v1/cache/status", s.cacheStatus)
 
 	mux.HandleFunc("/v1/demo/default-request", s.defaultDemoRequest)
 	mux.HandleFunc("/v1/demo/seed-duckdb", s.seedDuckDB)
+	mux.HandleFunc("/favicon.ico", func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(http.StatusNoContent) })
 	mux.Handle("/", http.FileServer(http.Dir("web")))
 
-	return mux
+	return s.WithSessionTouch(mux)
 }
 
 func (s *Server) health(w http.ResponseWriter, r *http.Request) {
@@ -129,6 +252,16 @@ func (s *Server) getActivePolicy(w http.ResponseWriter, r *http.Request) {
 
 	ctx, ok := s.resolver.GetActivePolicy(dataStoreID)
 	if !ok {
+		safeID := filepath.Base(dataStoreID)
+		if safeID != dataStoreID || safeID == "." || safeID == string(filepath.Separator) {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid data_store_id"})
+			return
+		}
+		var diskCtx policyresolver.PolicyContext
+		if err := readJSONFile(filepath.Join("data", "active-policy", safeID+".json"), &diskCtx); err == nil && diskCtx.DataStoreID == dataStoreID {
+			writeJSON(w, http.StatusOK, &diskCtx)
+			return
+		}
 		writeJSON(w, http.StatusNotFound, map[string]string{"error": "active policy not found"})
 		return
 	}
@@ -246,9 +379,9 @@ func (s *Server) cacheStatus(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]any{
 		"status":                 "available",
 		"policy_cache":           "in_memory_and_disk_backed",
-		"workflow_cache":         "demo_resolved",
+		"workflow_cache":         "resolved",
 		"last_known_good_policy": "enabled",
-		"note":                   "hackathon demo cache status endpoint",
+		"note":                   "cache status endpoint",
 	})
 }
 
@@ -274,12 +407,81 @@ func (s *Server) seedDuckDB(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
 		return
 	}
+	if s.portalState != nil {
+		cfg := s.azureBlobConfig()
+		cfg.DataStoreID = batch.DataStoreID
+		source := s.portalAzureSourceFromConfig(cfg, s.azureBlobCredentialSetForConfig(cfg))
+		containerSeen := map[string]bool{}
+		containers := []portalstate.AzureContainer{}
+		blobs := make([]portalstate.AzureBlob, 0, len(batch.Records))
+		for _, record := range batch.Records {
+			containerName := cfg.ContainerName
+			if parsed, err := azureblob.ContainerFromFileID(record.FileID); err == nil && parsed != "" {
+				containerName = parsed
+			}
+			if containerName != "" && !containerSeen[containerName] {
+				containerSeen[containerName] = true
+				containers = append(containers, portalstate.AzureContainer{Name: containerName})
+			}
+			blobs = append(blobs, portalstate.AzureBlob{
+				Container:    containerName,
+				Name:         record.Path,
+				FileID:       record.FileID,
+				SizeBytes:    record.SizeBytes,
+				ContentType:  record.ContentType,
+				LastModified: record.LastModified,
+			})
+		}
+		s.portalState.UpsertAzureContainers(source, containers)
+		s.portalState.UpsertAzureBlobs(source, blobs)
+	}
 
 	count, err := s.store.CountNormalizedFiles(r.Context(), batch.BatchID)
 	if err != nil {
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
 		return
 	}
+	containerName := ""
+	if len(batch.Records) > 0 {
+		if parsed, err := azureblob.ContainerFromFileID(batch.Records[0].FileID); err == nil {
+			containerName = parsed
+		}
+	}
+	s.recordEvidence(portalstate.EvidenceRecord{
+		SubjectType:  "metadata_scan",
+		SubjectID:    batch.BatchID,
+		EventType:    "azureblob.sample_batch.seeded",
+		Status:       "seeded",
+		Severity:     "info",
+		SourceSystem: "azure_blob",
+		DataStoreID:  batch.DataStoreID,
+		JobID:        batch.BatchID,
+		Container:    containerName,
+		Operation:    "metadata_scan",
+		Summary:      "Sample Azure Blob metadata batch was seeded and normalized " + strconv.Itoa(count) + " records.",
+		Details: map[string]any{
+			"batch_id":        batch.BatchID,
+			"lease_id":        batch.LeaseID,
+			"records_scanned": len(batch.Records),
+			"records_written": count,
+			"sample":          true,
+		},
+	})
+	s.recordAudit(portalstate.AuditEvent{
+		EventType:   "azureblob.sample_batch.seeded",
+		Actor:       "portal-user",
+		Status:      "seeded",
+		TargetType:  "azure_blob_container",
+		TargetID:    containerName,
+		DataStoreID: batch.DataStoreID,
+		Operation:   "metadata_scan",
+		DryRun:      true,
+		Summary:     "Sample Azure Blob metadata batch was seeded.",
+		Details: map[string]any{
+			"batch_id":        batch.BatchID,
+			"records_written": count,
+		},
+	})
 
 	writeJSON(w, http.StatusOK, map[string]any{
 		"status":          "seeded",
@@ -295,9 +497,29 @@ func (s *Server) azureBlobConfig() azureblob.Config {
 
 	if secret, err := s.secrets.Load(azureblob.ConnectionStringSecretName); err == nil && secret != "" {
 		cfg.ConnectionString = secret
+		if strings.TrimSpace(cfg.StorageAccount) == "" {
+			cfg.StorageAccount = storageAccountFromConnectionString(secret)
+		}
+	} else if strings.TrimSpace(s.cfg.AzureStorageConnectionString) != "" {
+		cfg.ConnectionString = strings.TrimSpace(s.cfg.AzureStorageConnectionString)
+		if strings.TrimSpace(cfg.StorageAccount) == "" {
+			cfg.StorageAccount = storageAccountFromConnectionString(cfg.ConnectionString)
+		}
 	}
 
 	return cfg
+}
+
+func (s *Server) azureBlobCredentialSet(sourceID string) bool {
+	sourceID = strings.TrimSpace(sourceID)
+	if sourceID != "" && s.secrets.Exists(azureblob.SourceCredentialSecretName(sourceID)) {
+		return true
+	}
+	return s.secrets.Exists(azureblob.ConnectionStringSecretName) || strings.TrimSpace(s.cfg.AzureStorageConnectionString) != ""
+}
+
+func (s *Server) azureBlobCredentialSetForConfig(cfg azureblob.Config) bool {
+	return s.azureBlobCredentialSet(firstNonBlank(cfg.DataStoreID, cfg.StorageAccount, "azureblob-local"))
 }
 
 func (s *Server) testAzureBlob(w http.ResponseWriter, r *http.Request) {
@@ -306,7 +528,7 @@ func (s *Server) testAzureBlob(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	scanner, err := azureblob.NewScanner(s.azureBlobConfig())
+	scanner, err := s.newAzureBlobScanner(s.azureBlobConfig())
 	if err != nil {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
 		return
@@ -318,6 +540,9 @@ func (s *Server) testAzureBlob(w http.ResponseWriter, r *http.Request) {
 	}
 
 	cfg := s.azureBlobConfig()
+	if s.portalState != nil {
+		s.portalState.UpsertAzureSource(s.portalAzureSourceFromConfig(cfg, s.azureBlobCredentialSetForConfig(cfg)))
+	}
 	writeJSON(w, http.StatusOK, map[string]any{
 		"status":            "ok",
 		"source_system":     "azure_blob",
@@ -336,7 +561,7 @@ func (s *Server) scanAzureBlob(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	scanner, err := azureblob.NewScanner(s.azureBlobConfig())
+	scanner, err := s.newAzureBlobScanner(s.azureBlobConfig())
 	if err != nil {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
 		return
@@ -352,25 +577,94 @@ func (s *Server) scanAzureBlob(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
 		return
 	}
+	if s.portalState != nil {
+		cfg := s.azureBlobConfig()
+		cfg.DataStoreID = result.DataStoreID
+		source := s.portalAzureSourceFromConfig(cfg, s.azureBlobCredentialSetForConfig(cfg))
+		containerSeen := map[string]bool{}
+		containers := []portalstate.AzureContainer{}
+		blobs := make([]portalstate.AzureBlob, 0, len(batch.Records))
+		for _, record := range batch.Records {
+			containerName := result.ContainerName
+			if parsed, err := azureblob.ContainerFromFileID(record.FileID); err == nil && parsed != "" {
+				containerName = parsed
+			}
+			if containerName != "" && !containerSeen[containerName] {
+				containerSeen[containerName] = true
+				containers = append(containers, portalstate.AzureContainer{Name: containerName})
+			}
+			blobs = append(blobs, portalstate.AzureBlob{
+				Container:    containerName,
+				Name:         firstNonBlank(record.Path, record.Name),
+				FileID:       record.FileID,
+				SizeBytes:    record.SizeBytes,
+				ContentType:  record.ContentType,
+				LastModified: record.LastModified,
+			})
+		}
+		s.portalState.UpsertAzureContainers(source, containers)
+		s.portalState.UpsertAzureBlobs(source, blobs)
+	}
 
 	count, err := s.store.CountNormalizedFiles(r.Context(), batch.BatchID)
 	if err != nil {
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
 		return
 	}
+	s.recordEvidence(portalstate.EvidenceRecord{
+		SubjectType:  "metadata_scan",
+		SubjectID:    result.BatchID,
+		EventType:    "azureblob.metadata_scan.completed",
+		Status:       result.Status,
+		Severity:     "info",
+		SourceSystem: "azure_blob",
+		DataStoreID:  result.DataStoreID,
+		JobID:        result.BatchID,
+		Container:    result.ContainerName,
+		Operation:    "metadata_scan",
+		Summary:      "Azure Blob metadata scan completed and normalized " + strconv.Itoa(count) + " records.",
+		Details: map[string]any{
+			"batch_id":          result.BatchID,
+			"prefix":            result.Prefix,
+			"records_scanned":   result.RecordsScanned,
+			"records_written":   count,
+			"action_mode":       result.ActionMode,
+			"writeback_enabled": result.Writeback,
+		},
+	})
+	s.recordAudit(portalstate.AuditEvent{
+		EventType:   "azureblob.metadata_scan.completed",
+		Actor:       "portal-user",
+		Status:      result.Status,
+		TargetType:  "azure_blob_container",
+		TargetID:    result.ContainerName,
+		DataStoreID: result.DataStoreID,
+		Operation:   "metadata_scan",
+		DryRun:      true,
+		Summary:     "Azure Blob metadata scan completed.",
+		Details: map[string]any{
+			"batch_id":        result.BatchID,
+			"records_written": count,
+		},
+	})
 
+	w.Header().Set("X-Everest-Endpoint-Mode", "demo-dev-direct-connector")
+	w.Header().Set("X-Everest-Preferred-Endpoint", "/v1/controlplane/run-next-lease")
 	writeJSON(w, http.StatusOK, map[string]any{
-		"status":          result.Status,
-		"source_system":   "azure_blob",
-		"container":       result.ContainerName,
-		"prefix":          result.Prefix,
-		"data_store_id":   result.DataStoreID,
-		"batch_id":        result.BatchID,
-		"records_scanned": result.RecordsScanned,
-		"records_written": count,
-		"store":           "local_ephemeral_db",
-		"action_mode":     result.ActionMode,
-		"writeback":       result.Writeback,
+		"status":                        result.Status,
+		"source_system":                 "azure_blob",
+		"container":                     result.ContainerName,
+		"prefix":                        result.Prefix,
+		"data_store_id":                 result.DataStoreID,
+		"batch_id":                      result.BatchID,
+		"records_scanned":               result.RecordsScanned,
+		"records_written":               count,
+		"store":                         "local_ephemeral_db",
+		"action_mode":                   result.ActionMode,
+		"writeback":                     result.Writeback,
+		"endpoint_mode":                 "demo_dev_direct_connector",
+		"preferred_enterprise_endpoint": "/v1/controlplane/run-next-lease",
+		"note":                          "Direct Azure Blob scan is retained for demo/dev. Enterprise execution should use the Control Plane lease path.",
 	})
 }
 
@@ -386,7 +680,7 @@ func (s *Server) azureBlobStatus(w http.ResponseWriter, r *http.Request) {
 		"batch_id":              cfg.BatchID,
 		"action_mode":           cfg.ActionMode,
 		"writeback_enabled":     cfg.WritebackEnabled,
-		"credential_configured": s.secrets.Exists(azureblob.ConnectionStringSecretName),
+		"credential_configured": s.azureBlobCredentialSetForConfig(cfg),
 	})
 }
 
@@ -396,7 +690,7 @@ func (s *Server) listAzureBlobContainers(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	scanner, err := azureblob.NewScanner(s.azureBlobConfig())
+	scanner, err := s.newAzureBlobScanner(s.azureBlobConfig())
 	if err != nil {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
 		return
@@ -406,6 +700,15 @@ func (s *Server) listAzureBlobContainers(w http.ResponseWriter, r *http.Request)
 	if err != nil {
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
 		return
+	}
+	if s.portalState != nil {
+		cfg := s.azureBlobConfig()
+		source := s.portalAzureSourceFromConfig(cfg, s.azureBlobCredentialSetForConfig(cfg))
+		items := make([]portalstate.AzureContainer, 0, len(containers))
+		for _, name := range containers {
+			items = append(items, portalstate.AzureContainer{Name: name})
+		}
+		s.portalState.UpsertAzureContainers(source, items)
 	}
 
 	writeJSON(w, http.StatusOK, map[string]any{
@@ -461,7 +764,7 @@ func queryInt(r *http.Request, name string, defaultValue int) int {
 
 func (s *Server) publicAzureBlobConfig() azureblob.PublicConfig {
 	public := s.azureConfigStore.Public()
-	public.CredentialSet = s.secrets.Exists(azureblob.ConnectionStringSecretName)
+	public.CredentialSet = s.azureBlobCredentialSet(firstNonBlank(public.DataStoreID, public.StorageAccount, "azureblob-local"))
 	return public
 }
 
@@ -471,25 +774,109 @@ func (s *Server) azureBlobConfigHandler(w http.ResponseWriter, r *http.Request) 
 		writeJSON(w, http.StatusOK, s.publicAzureBlobConfig())
 		return
 
+	case http.MethodDelete:
+		if !s.authorizeEnterpriseAction(w, r, "azureblob.source.delete", "platform_admin") {
+			return
+		}
+		current := s.azureConfigStore.Get()
+		currentSourceID := firstNonBlank(current.DataStoreID, current.StorageAccount, "azureblob-local")
+		sourceID := firstNonBlank(r.URL.Query().Get("source_id"), currentSourceID)
+		if err := s.secrets.Delete(azureblob.SourceCredentialSecretName(sourceID)); err != nil {
+			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to remove saved Azure source access: " + err.Error()})
+			return
+		}
+		if sourceID == currentSourceID {
+			if err := s.secrets.Delete(azureblob.ConnectionStringSecretName); err != nil {
+				writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to remove saved Azure account access: " + err.Error()})
+				return
+			}
+			s.azureConfigStore.Update(azureblob.Config{
+				ActionMode:       "dry_run",
+				WritebackEnabled: "false",
+			})
+		}
+		if s.portalState != nil {
+			s.portalState.RemoveAzureSource(sourceID)
+			s.recordAudit(portalstate.AuditEvent{
+				EventType:  "azureblob.source.deleted",
+				Actor:      "portal-user",
+				Status:     "deleted",
+				TargetType: "azure_blob_source",
+				TargetID:   sourceID,
+				Summary:    "Saved Azure Blob source was removed from the local portal.",
+				DryRun:     false,
+			})
+		}
+		writeJSON(w, http.StatusOK, map[string]any{
+			"status": "deleted",
+			"config": s.publicAzureBlobConfig(),
+		})
+		return
+
 	case http.MethodPost:
+		if !s.authorizeEnterpriseAction(w, r, "azureblob.source.save", "platform_admin", "data_steward") {
+			return
+		}
 		var req azureblob.ConfigureRequest
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid request body: " + err.Error()})
 			return
 		}
 
-		if strings.TrimSpace(req.ConnectionString) != "" {
-			if err := s.secrets.Save(azureblob.ConnectionStringSecretName, strings.TrimSpace(req.ConnectionString)); err != nil {
-				writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to store Azure credential securely: " + err.Error()})
+		requestConnectionString := azureblob.ConnectionStringFromRequest(req)
+		sourceID := firstNonBlank(req.SourceID, req.DataStoreID, req.StorageAccount, "azureblob-local")
+		credentialOnly := requestConnectionString != "" &&
+			strings.TrimSpace(req.ContainerName) == "" &&
+			strings.TrimSpace(req.Prefix) == "" &&
+			strings.TrimSpace(req.DataStoreID) == "" &&
+			strings.TrimSpace(req.BatchID) == "" &&
+			strings.TrimSpace(req.ActionMode) == "" &&
+			strings.TrimSpace(req.WritebackEnabled) == ""
+
+		if requestConnectionString != "" {
+			if err := s.secrets.Save(azureblob.SourceCredentialSecretName(sourceID), requestConnectionString); err != nil {
+				writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to store Azure source access securely: " + err.Error()})
 				return
+			}
+			if err := s.secrets.Save(azureblob.ConnectionStringSecretName, requestConnectionString); err != nil {
+				writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to store Azure account access securely: " + err.Error()})
+				return
+			}
+			if strings.TrimSpace(req.StorageAccount) == "" {
+				req.StorageAccount = storageAccountFromConnectionString(requestConnectionString)
+			}
+			if strings.TrimSpace(req.DataStoreID) == "" {
+				req.DataStoreID = sourceID
 			}
 
 			req.ConnectionString = ""
 		}
 
+		if credentialOnly {
+			current := s.azureConfigStore.Get()
+			if strings.TrimSpace(current.StorageAccount) == "" && strings.TrimSpace(req.StorageAccount) != "" {
+				current.StorageAccount = strings.TrimSpace(req.StorageAccount)
+				s.azureConfigStore.Update(current)
+			}
+			if s.portalState != nil {
+				cfg := s.azureBlobConfig()
+				cfg.DataStoreID = firstNonBlank(req.DataStoreID, sourceID)
+				cfg.StorageAccount = firstNonBlank(req.StorageAccount, cfg.StorageAccount)
+				s.portalState.UpsertAzureSource(s.portalAzureSourceFromConfig(cfg, s.azureBlobCredentialSetForConfig(cfg)))
+			}
+			writeJSON(w, http.StatusOK, map[string]any{
+				"status": "saved",
+				"config": s.publicAzureBlobConfig(),
+			})
+			return
+		}
+
 		current := s.azureConfigStore.Get()
 		next := azureblob.ConfigFromRequest(req, current)
 		next.ConnectionString = ""
+		if strings.TrimSpace(next.StorageAccount) == "" && requestConnectionString != "" {
+			next.StorageAccount = storageAccountFromConnectionString(requestConnectionString)
+		}
 
 		if strings.TrimSpace(next.ContainerName) == "" {
 			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "container is required"})
@@ -515,6 +902,10 @@ func (s *Server) azureBlobConfigHandler(w http.ResponseWriter, r *http.Request) 
 		}
 
 		s.azureConfigStore.Update(next)
+		if s.portalState != nil {
+			cfg := s.azureBlobConfig()
+			s.portalState.UpsertAzureSource(s.portalAzureSourceFromConfig(cfg, s.azureBlobCredentialSetForConfig(cfg)))
+		}
 
 		writeJSON(w, http.StatusOK, map[string]any{
 			"status": "saved",
@@ -526,4 +917,98 @@ func (s *Server) azureBlobConfigHandler(w http.ResponseWriter, r *http.Request) 
 		writeJSON(w, http.StatusMethodNotAllowed, map[string]string{"error": "method not allowed"})
 		return
 	}
+}
+
+func (s *Server) startAzureBlobExecution(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		writeJSON(w, http.StatusMethodNotAllowed, map[string]string{"error": "method not allowed"})
+		return
+	}
+
+	cfg := s.azureBlobConfig()
+
+	if cfg.DataStoreID == "" {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "data_store_id is required"})
+		return
+	}
+
+	if cfg.BatchID == "" {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "batch_id is required"})
+		return
+	}
+
+	if cfg.ActionMode == "" {
+		cfg.ActionMode = "dry_run"
+	}
+
+	now := time.Now().UTC()
+	suffix := now.Format("20060102-150405")
+
+	executionID := "exec-azureblob-" + suffix
+	leaseID := "lease-azureblob-" + suffix
+	jobID := "job-azureblob-" + suffix
+	envelope := s.buildDACActionRequestEnvelope(r, dacIntentInput{
+		Operation:  "azure_blob_execution_start",
+		SourceID:   cfg.DataStoreID,
+		ActionMode: cfg.ActionMode,
+		Container:  cfg.ContainerName,
+		Prefix:     cfg.Prefix,
+		Metadata: map[string]string{
+			"entrypoint":   "azure_blob_execution_start",
+			"execution_id": executionID,
+			"job_id":       jobID,
+			"batch_id":     cfg.BatchID,
+		},
+	})
+
+	req := execution.ExecutionStartRequest{
+		ExecutionID: executionID,
+		Lease: execution.ExecutionLease{
+			LeaseID:               leaseID,
+			JobID:                 jobID,
+			DataStoreID:           cfg.DataStoreID,
+			CompiledPolicyVersion: s.cfg.ActiveCompiledPolicyVersion,
+			CompiledGitTag:        s.cfg.ActiveCompiledPolicyTag,
+			CompiledGitCommit:     "",
+			CompiledArtifactHash:  s.cfg.ActiveCompiledPolicyHash,
+			WorkflowVersion:       s.cfg.ActiveWorkflowVersion,
+			WorkflowGitTag:        s.cfg.ActiveWorkflowTag,
+		},
+		ExecutionState: execution.ExecutionState{
+			DataStoreID:     cfg.DataStoreID,
+			ProcessingTier:  s.cfg.DefaultProcessingTier,
+			ProcessingMode:  s.cfg.DefaultProcessingMode,
+			PolicyVersion:   s.cfg.ActiveCompiledPolicyVersion,
+			WorkflowVersion: s.cfg.ActiveWorkflowVersion,
+			Settings: execution.ExecutionSettings{
+				EnableContentIntelligence: true,
+				EnableGuardianEvaluation:  true,
+				EnableWriteBackActions:    cfg.WritebackEnabled == "true",
+				EnableElasticsearchIndex:  true,
+			},
+			OperationalConfig: execution.ExecutionOperationalConfig{
+				BatchSize:                    1000,
+				LocalExecutionRequired:       true,
+				GuardianBeforeActionRequired: true,
+				ActionMode:                   cfg.ActionMode,
+			},
+		},
+		BatchID:         cfg.BatchID,
+		RequestEnvelope: &envelope,
+	}
+
+	result, err := s.orchestrator.Start(r.Context(), req)
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
+		return
+	}
+	if s.portalState != nil {
+		s.portalState.UpsertJob(portalstate.Job{
+			JobID:       jobID,
+			DataStoreID: cfg.DataStoreID,
+			Status:      result.Status.Status,
+		})
+	}
+
+	writeJSON(w, http.StatusOK, result)
 }

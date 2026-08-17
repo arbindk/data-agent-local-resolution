@@ -12,6 +12,16 @@ data/ephemeral/
 data/executions/
 data/summaries/
 data/provenance/
+data/auth/
+data/platform/
+data/async-normalized/
+data/secrets/
+data/portal_state.json
+data/azureblob_scan_jobs.json
+
+# Local review extracts and accidental duplicates
+.codex-review/
+web/iindex.html
 
 # Logs
 logs/

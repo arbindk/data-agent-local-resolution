@@ -1,0 +1,117 @@
+{
+  "provider_id": "customer-private-llm",
+  "display_name": "Customer Private LLM Gateway",
+  "provider_type": "custom_http",
+  "vendor": "Customer",
+  "version": "1.0.0",
+  "status": "custom_manifest",
+  "description": "Customer-owned AI gateway for private-network and air-gapped Everest deployments.",
+  "deployment_modes": ["private_network", "air_gapped", "hybrid"],
+  "network_modes": ["private_endpoint", "no_internet_required"],
+  "runtime": {
+    "kind": "custom_http",
+    "protocol": "everest_ai_provider_v1",
+    "endpoint": "https://private-ai-gateway.local",
+    "health_check": "/healthz",
+    "platforms": ["windows", "linux"]
+  },
+  "auth_schemes": [
+    {
+      "scheme": "bearer_token",
+      "display_name": "Bearer token",
+      "secret_fields": ["bearer_token"],
+      "offline_ready": true
+    },
+    {
+      "scheme": "none",
+      "display_name": "Mutual TLS or network trust",
+      "offline_ready": true
+    }
+  ],
+  "config_fields": [
+    {
+      "name": "endpoint_url",
+      "label": "Gateway endpoint",
+      "type": "url",
+      "required": true
+    },
+    {
+      "name": "model",
+      "label": "Model profile",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "auth_scheme",
+      "label": "Auth scheme",
+      "type": "select",
+      "required": true,
+      "options": ["bearer_token", "none"]
+    },
+    {
+      "name": "bearer_token",
+      "label": "Bearer token",
+      "type": "secret",
+      "required": false,
+      "secret": true
+    }
+  ],
+  "model_options": [
+    {
+      "model_id": "customer-governance-profile",
+      "display_name": "Customer Governance Profile",
+      "capabilities": ["recommendations", "classification", "summarization", "action_planning"]
+    }
+  ],
+  "capabilities": {
+    "chat": true,
+    "recommendations": true,
+    "classification": true,
+    "summarization": true,
+    "policy_explanation": true,
+    "action_planning": true,
+    "prompt_grounding": true,
+    "structured_json": true,
+    "tool_calling": false,
+    "streaming": false,
+    "embeddings": false,
+    "offline_inference": true,
+    "supported_tasks": [
+      "chat",
+      "classification",
+      "policy_explanation",
+      "action_recommendations",
+      "hitl_request_prefill"
+    ],
+    "supported_modalities": ["text", "metadata", "policy", "evidence"]
+  },
+  "safety": {
+    "advisory_only_default": true,
+    "hitl_submission_allowed": true,
+    "autonomous_apply_allowed": false,
+    "prompt_audit_required": true,
+    "evidence_grounding_required": true,
+    "redaction_supported": true,
+    "allowed_automation_modes": ["recommend_only", "submit_hitl_approvals"],
+    "blocked_actions": ["autonomous_apply", "silent_delete", "ungrounded_writeback"]
+  },
+  "data_policy": {
+    "customer_data_leaves_environment": false,
+    "supports_private_endpoint": true,
+    "supports_air_gap": true,
+    "retention_notes": ["Customer gateway owns prompt retention policy."],
+    "residency_notes": ["Inference remains in the customer's private or air-gapped environment."],
+    "data_handling_notes": ["Gateway must return structured JSON and must not execute actions directly."]
+  },
+  "support": {
+    "owner": "customer",
+    "support_level": "contract_validated",
+    "test_requirements": [
+      "manifest validation",
+      "gateway health check",
+      "structured JSON recommendation response",
+      "prompt audit enabled"
+    ],
+    "customer_owned_code": true
+  }
+}

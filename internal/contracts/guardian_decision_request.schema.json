@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "GuardianDecisionRequest",
+  "type": "object",
+  "required": [
+    "decision_request_id",
+    "request_id",
+    "tenant_id",
+    "actor",
+    "operation",
+    "policy_context"
+  ],
+  "properties": {
+    "decision_request_id": { "type": "string" },
+    "request_id": { "type": "string" },
+    "execution_id": { "type": "string" },
+    "tenant_id": { "type": "string" },
+    "actor": {
+      "type": "object",
+      "required": ["id"],
+      "properties": {
+        "id": { "type": "string" },
+        "email": { "type": "string" },
+        "role": { "type": "string" },
+        "auth_type": { "type": "string" },
+        "client_id": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "operation": { "type": "string" },
+    "object_refs": {
+      "type": "array",
+      "items": { "$ref": "action_request_envelope.schema.json#/$defs/object_ref" }
+    },
+    "object_count": { "type": "integer" },
+    "classification": { "type": "string" },
+    "risk_score": { "type": "integer" },
+    "source_region": { "type": "string" },
+    "target_region": { "type": "string" },
+    "policy_context": { "$ref": "action_request_envelope.schema.json#/$defs/policy_context" },
+    "runtime_context": { "$ref": "action_request_envelope.schema.json#/$defs/runtime_context" },
+    "action_parameters": {
+      "type": "object",
+      "additionalProperties": { "type": "string" }
+    },
+    "requested_at": { "type": "string", "format": "date-time" }
+  },
+  "additionalProperties": true
+}

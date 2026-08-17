@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "BatchSummary",
+  "type": "object",
+  "required": ["batch_summary_id", "batch_id", "lease_id", "data_store_id", "processing_tier", "file_count", "policy_version", "risk_summary", "actions_taken"],
+  "properties": {
+    "batch_summary_id": {"type": "string"},
+    "batch_id": {"type": "string"},
+    "lease_id": {"type": "string"},
+    "data_store_id": {"type": "string"},
+    "processed_at": {"type": "string"},
+    "processing_tier": {"type": "string"},
+    "processing_mode": {"type": "string"},
+    "file_count": {"type": "integer"},
+    "entities": {"type": "object"},
+    "risk_summary": {"type": "object"},
+    "sovereignty": {"type": "object"},
+    "actions_taken": {"type": "object"},
+    "policy_version": {"type": "string"},
+    "partial_failures": {"type": "array", "items": {"type": "object"}}
+  },
+  "additionalProperties": true
+}

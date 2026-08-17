@@ -55,15 +55,21 @@ func buildManifest(
 
 		actionRequested := "none"
 		actionStatus := "not_applicable"
-		guardianDecision := "not_evaluated"
+		guardianDecision := GuardianDecisionPending
 		provenanceID := ""
 
 		if riskLevel == "critical" || riskLevel == "high" {
-			actionRequested = "dry_run_apply_metadata_tag"
+			actionRequested = ActionApplyBlobMetadata
 			actionStatus = "planned_dry_run"
-			guardianDecision = "pending_real_guardian"
+			guardianDecision = GuardianDecisionPending
 			provenanceID = fmt.Sprintf("prov-%s", record.FileID)
 			summary.ActionsPlanned++
+
+			if req.ExecutionState.OperationalConfig.ActionMode == ActionModeApply &&
+				req.ExecutionState.Settings.EnableWriteBackActions {
+				actionStatus = "guardian_approved_pending_apply"
+				guardianDecision = GuardianDecisionAllow
+			}
 		}
 
 		details = append(details, contracts.ManifestDetail{

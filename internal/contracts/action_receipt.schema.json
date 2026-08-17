@@ -1,0 +1,80 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ActionReceipt",
+  "type": "object",
+  "required": [
+    "receipt_id",
+    "action_id",
+    "request_id",
+    "decision_id",
+    "connector_id",
+    "action_type",
+    "status",
+    "applied",
+    "dry_run",
+    "receipt_hash"
+  ],
+  "properties": {
+    "receipt_id": { "type": "string" },
+    "action_id": { "type": "string" },
+    "request_id": { "type": "string" },
+    "execution_id": { "type": "string" },
+    "decision_id": { "type": "string" },
+    "connector_id": { "type": "string" },
+    "object_refs": {
+      "type": "array",
+      "items": { "$ref": "action_request_envelope.schema.json#/$defs/object_ref" }
+    },
+    "action_type": { "type": "string" },
+    "status": {
+      "type": "string",
+      "enum": ["planned", "completed", "blocked", "failed", "skipped", "authorized_pending_execution"]
+    },
+    "applied": { "type": "boolean" },
+    "dry_run": { "type": "boolean" },
+    "result_summary": { "type": "string" },
+    "error": { "type": "string" },
+    "obligations_applied": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "evidence_refs": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "provenance_refs": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "started_at": { "type": "string", "format": "date-time" },
+    "completed_at": { "type": "string", "format": "date-time" },
+    "receipt_hash": { "type": "string" }
+  },
+  "$defs": {
+    "action_command": {
+      "type": "object",
+      "required": ["action_id", "request_id", "decision_id", "connector_id", "action_type"],
+      "properties": {
+        "action_id": { "type": "string" },
+        "request_id": { "type": "string" },
+        "execution_id": { "type": "string" },
+        "decision_id": { "type": "string" },
+        "connector_id": { "type": "string" },
+        "action_type": { "type": "string" },
+        "object_refs": {
+          "type": "array",
+          "items": { "$ref": "action_request_envelope.schema.json#/$defs/object_ref" }
+        },
+        "parameters": {
+          "type": "object",
+          "additionalProperties": { "type": "string" }
+        },
+        "idempotency_key": { "type": "string" },
+        "dry_run": { "type": "boolean" },
+        "requested_at": { "type": "string", "format": "date-time" }
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": true
+}

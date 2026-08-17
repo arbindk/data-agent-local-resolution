@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "GuardianDecision",
+  "type": "object",
+  "required": [
+    "decision_id",
+    "request_id",
+    "decision",
+    "approved",
+    "policy_bundle_version",
+    "policy_bundle_hash",
+    "rules_applied",
+    "reasoning",
+    "local_execution_confirmed"
+  ],
+  "properties": {
+    "decision_id": { "type": "string" },
+    "decision_request_id": { "type": "string" },
+    "request_id": { "type": "string" },
+    "execution_id": { "type": "string" },
+    "decision": {
+      "type": "string",
+      "enum": ["allow", "deny", "modify", "flag", "review_required"]
+    },
+    "approved": { "type": "boolean" },
+    "policy_bundle_version": { "type": "string" },
+    "policy_bundle_hash": { "type": "string" },
+    "rules_applied": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "obligations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "type"],
+        "properties": {
+          "id": { "type": "string" },
+          "type": { "type": "string" },
+          "description": { "type": "string" },
+          "parameters": {
+            "type": "object",
+            "additionalProperties": { "type": "string" }
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "hitl_required": { "type": "boolean" },
+    "human_review_required": { "type": "boolean" },
+    "reasoning": { "type": "string" },
+    "risk_score": { "type": "integer" },
+    "modified_action": { "$ref": "action_receipt.schema.json#/$defs/action_command" },
+    "evaluated_at": { "type": "string", "format": "date-time" },
+    "local_execution_confirmed": { "type": "boolean" }
+  },
+  "additionalProperties": true
+}

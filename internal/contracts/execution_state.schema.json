@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://everest.local/contracts/execution_state.schema.json",
+  "title": "Item 13 ExecutionState",
+  "type": "object",
+  "required": ["execution_id", "lease_id", "data_store_id", "compiled_policy_version", "workflow_version", "processing_tier", "processing_mode", "configuration"],
+  "properties": {
+    "execution_id": {"type": "string"},
+    "lease_id": {"type": "string"},
+    "data_store_id": {"type": "string"},
+    "compiled_policy_version": {"type": "string"},
+    "compiled_git_tag": {"type": "string"},
+    "compiled_git_commit": {"type": "string"},
+    "compiled_artifact_hash": {"type": "string", "pattern": "^sha256:[a-fA-F0-9]{64}$"},
+    "workflow_version": {"type": "string"},
+    "workflow_git_ref": {"type": "string"},
+    "processing_tier": {"type": "string", "enum": ["tier1", "tier2", "tier3"]},
+    "processing_mode": {"type": "string", "enum": ["rolled_up", "standard", "full_investigation"]},
+    "configuration": {
+      "type": "object",
+      "properties": {
+        "batch_size": {"type": "integer", "minimum": 1},
+        "max_content_items": {"type": "integer", "minimum": 0},
+        "indexing_mode": {"type": "string", "enum": ["rollup_only", "signals", "rich"]},
+        "allow_last_known_good": {"type": "boolean"},
+        "guardian_required_for_actions": {"type": "boolean"}
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": false
+}

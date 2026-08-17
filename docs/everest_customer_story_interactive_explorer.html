@@ -1,0 +1,258 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<link rel="icon" href="data:,">
+<title>EVEREST Customer Story Explorer — Azure Blob</title>
+<style>
+:root{
+  --bg:#07111f;--panel:#0d1b30;--panel2:#13243d;--ink:#edf5ff;--muted:#9fb4d3;--line:#294260;
+  --blue:#38bdf8;--green:#22c55e;--purple:#a78bfa;--orange:#fb923c;--red:#f87171;--amber:#fbbf24;
+  --shadow:0 24px 70px rgba(0,0,0,.38);--radius:18px;
+}
+*{box-sizing:border-box}
+body{margin:0;background:radial-gradient(circle at 15% 0,#122a50 0,#07111f 42%,#020617 100%);color:var(--ink);font:13px/1.45 Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial}
+button{font:inherit}
+.app{display:grid;grid-template-columns:246px 1fr;min-height:100vh}
+.side{height:100vh;position:sticky;top:0;overflow:auto;background:rgba(2,8,18,.86);border-right:1px solid var(--line);padding:18px 13px}
+.logo{display:flex;align-items:center;gap:10px;margin-bottom:15px}.mark{width:38px;height:38px;border-radius:12px;display:grid;place-items:center;background:linear-gradient(135deg,#38bdf8,#7c3aed);font-weight:950}.logo b{font-size:18px;letter-spacing:.08em}.small{font-size:11px}.muted{color:var(--muted)}
+.role{width:100%;text-align:left;border:1px solid var(--line);background:rgba(255,255,255,.04);color:var(--ink);border-radius:15px;margin:7px 0;padding:11px;cursor:pointer}.role strong{display:block}.role span{font-size:11px;color:var(--muted)}.role.active,.role:hover{border-color:var(--blue);background:rgba(56,189,248,.10)}
+.sideBtn{width:100%;border:1px solid var(--line);border-radius:12px;background:rgba(255,255,255,.06);color:var(--ink);padding:9px;margin-top:8px;cursor:pointer}
+.main{min-width:0}.top{position:sticky;top:0;z-index:9;display:flex;justify-content:space-between;gap:12px;align-items:center;padding:15px 20px;background:rgba(6,14,27,.9);backdrop-filter:blur(16px);border-bottom:1px solid var(--line)}
+h1{font-size:24px;line-height:1.05;margin:0;font-weight:950}h2{font-size:16px;margin:0 0 9px}h3{font-size:14px;margin:0 0 7px}
+.wrap{padding:16px;max-width:1700px}.card{background:linear-gradient(180deg,rgba(255,255,255,.055),rgba(255,255,255,.025));border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:14px}.grid{display:grid;gap:12px}.two{grid-template-columns:1.05fr .95fr}.three{grid-template-columns:repeat(3,1fr)}.four{grid-template-columns:repeat(4,1fr)}
+.pill{display:inline-flex;align-items:center;border:1px solid var(--line);border-radius:999px;padding:5px 9px;font-size:11px;font-weight:850;background:rgba(255,255,255,.055)}.green{color:#86efac;border-color:rgba(34,197,94,.35);background:rgba(34,197,94,.10)}.red{color:#fca5a5;border-color:rgba(248,113,113,.35);background:rgba(248,113,113,.10)}.orange{color:#fdba74;border-color:rgba(251,146,60,.35);background:rgba(251,146,60,.10)}.purple{color:#c4b5fd;border-color:rgba(167,139,250,.35);background:rgba(167,139,250,.10)}.blue{color:#7dd3fc;border-color:rgba(56,189,248,.35);background:rgba(56,189,248,.10)}
+.scenarios{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:9px}.scenario{border:1px solid var(--line);border-radius:15px;background:rgba(255,255,255,.035);color:var(--ink);padding:11px;cursor:pointer;text-align:left;min-height:78px}.scenario.active,.scenario:hover{border-color:var(--blue);background:rgba(56,189,248,.10)}.scenario.negative{border-color:rgba(248,113,113,.30)}.scenario strong{display:block;font-size:13px}.scenario span{display:block;color:var(--muted);font-size:11px;margin-top:4px}
+.storyHero{display:grid;grid-template-columns:1.1fr .9fr;gap:12px;margin-top:12px}.kpi{border:1px solid var(--line);border-radius:14px;background:rgba(255,255,255,.035);padding:11px}.kpi label{display:block;text-transform:uppercase;font-weight:900;letter-spacing:.11em;color:#9fb4d3;font-size:10px}.kpi strong{display:block;font-size:18px;margin-top:5px}
+.tabs{display:flex;gap:7px;flex-wrap:wrap;margin:10px 0}.tab{border:1px solid var(--line);border-radius:999px;background:rgba(255,255,255,.05);color:var(--ink);padding:7px 10px;cursor:pointer}.tab.active{border-color:var(--purple);background:rgba(167,139,250,.14)}
+.timeline{display:grid;grid-template-columns:repeat(8,1fr);gap:8px}.chapter{border:1px solid var(--line);border-radius:14px;background:rgba(255,255,255,.035);padding:10px;cursor:pointer;min-height:105px}.chapter:hover,.chapter.active{border-color:var(--green);background:rgba(34,197,94,.08)}.chapter .num{width:23px;height:23px;border-radius:999px;background:rgba(34,197,94,.15);border:1px solid rgba(34,197,94,.4);display:grid;place-items:center;font-weight:950;color:#bbf7d0;margin-bottom:5px}.chapter b{display:block}.chapter span{font-size:11px;color:var(--muted)}
+.flowLayout{display:grid;grid-template-columns:1fr 410px;gap:12px;margin-top:12px}.swim{border:1px solid var(--line);border-radius:18px;background:#071426;overflow:auto}.lanes{min-width:1180px}.head{display:grid;grid-template-columns:70px repeat(12,1fr);position:sticky;top:0;background:#0b1a2f;z-index:1}.head div{border-right:1px dashed #254361;padding:7px 4px;text-align:center;font-size:10px;color:#bfd5f7;font-weight:900}.row{display:grid;grid-template-columns:70px repeat(12,1fr);min-height:45px;border-top:1px solid rgba(41,66,96,.45)}.numCell{display:grid;place-items:center}.bubble{width:24px;height:24px;border-radius:999px;display:grid;place-items:center;font-weight:950;background:rgba(34,197,94,.16);border:1px solid rgba(34,197,94,.45);color:#bbf7d0}.row.neg .bubble{background:rgba(248,113,113,.16);border-color:rgba(248,113,113,.45);color:#fecaca}.cell{border-right:1px dashed #203a59;padding:5px;position:relative;font-size:10.5px}.step{border:1px solid transparent;border-radius:10px;padding:5px;cursor:pointer;background:rgba(255,255,255,.025)}.step:hover,.step.active{border-color:rgba(56,189,248,.45);background:rgba(56,189,248,.12)}.arrow{height:2px;background:var(--blue);position:absolute;left:3px;right:3px;top:50%;box-shadow:0 0 10px rgba(56,189,248,.55)}.arrow.green{background:var(--green)}.arrow.orange{background:var(--orange)}.arrow.purple{background:var(--purple)}
+.inspect{position:sticky;top:88px;align-self:start}.inspectBox{border:1px solid var(--line);background:rgba(255,255,255,.035);border-radius:15px;padding:11px;margin-bottom:8px}.kv{display:grid;grid-template-columns:120px 1fr;gap:6px}.kv b{color:#dbeafe}.list{margin:0;padding-left:18px}.list li{margin:3px 0}
+.whyGrid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.whyCard{border:1px solid var(--line);border-radius:15px;background:rgba(255,255,255,.035);padding:12px}.whyCard b{display:block;color:#e0f2fe}.whyCard p{margin:5px 0;color:#cbd5e1}
+.storeMap{display:grid;gap:7px}.storeItem{display:flex;align-items:center;justify-content:space-between;gap:10px;border:1px solid var(--line);border-radius:12px;background:rgba(255,255,255,.035);padding:9px}
+.outcomes{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}.good{border-color:rgba(34,197,94,.35);background:rgba(34,197,94,.08)}.bad{border-color:rgba(248,113,113,.35);background:rgba(248,113,113,.08)}
+.faq{display:grid;grid-template-columns:320px 1fr;gap:12px}.qList button{width:100%;border:1px solid var(--line);border-radius:11px;background:rgba(255,255,255,.04);color:var(--ink);padding:9px;margin:4px 0;text-align:left;cursor:pointer}.qList button.active{border-color:var(--purple);background:rgba(167,139,250,.12)}
+@media(max-width:1200px){.app{grid-template-columns:1fr}.side{position:relative;height:auto}.storyHero,.flowLayout,.two,.three,.four,.outcomes,.faq,.whyGrid{grid-template-columns:1fr}.scenarios{grid-template-columns:repeat(2,1fr)}.timeline{grid-template-columns:repeat(2,1fr)}.inspect{position:relative;top:0}}
+</style>
+</head>
+<body>
+<div class="app">
+<aside class="side">
+  <div class="logo"><div class="mark">E</div><div><b>EVEREST</b><div class="muted small">Customer Story Explorer</div></div></div>
+  <div class="muted small">View as</div>
+  <button class="role active" data-role="customer" onclick="setRole('customer')"><strong>👤 Customer</strong><span>Why should I use this?</span></button>
+  <button class="role" data-role="qa" onclick="setRole('qa')"><strong>🧪 QA</strong><span>What should I test?</span></button>
+  <button class="role" data-role="developer" onclick="setRole('developer')"><strong>🛠 Developer</strong><span>How is it built?</span></button>
+  <button class="role" data-role="architect" onclick="setRole('architect')"><strong>🏛 Architect</strong><span>How does it align?</span></button>
+  <button class="sideBtn" onclick="play()">▶ Play Story</button>
+  <button class="sideBtn" onclick="resetView()">↻ Reset</button>
+</aside>
+<main class="main">
+<header class="top">
+  <div><h1>EVEREST Interactive Customer Story — Azure Blob</h1><div class="muted">High-level customer story + low-level component contracts in one page.</div></div>
+  <div class="pill blue">Click scenario → click step → see details</div>
+</header>
+<div class="wrap">
+  <div class="card">
+    <h2>1. Choose the customer scenario</h2>
+    <div class="scenarios" id="scenarios"></div>
+  </div>
+
+  <section class="storyHero">
+    <div class="card">
+      <div class="pill green" id="scenarioKind">Happy path</div>
+      <h2 id="storyTitle" style="margin-top:8px">Customer wants governed visibility before moving or using data</h2>
+      <p class="muted" id="storyProblem">The customer has many files in Azure Blob and does not know which ones are sensitive, stale, risky, or AI-ready. They need governed discovery without copying all data out of their environment.</p>
+      <div class="tabs">
+        <button class="tab active" onclick="setLayer('business',this)">Business story</button>
+        <button class="tab" onclick="setLayer('technical',this)">Technical story</button>
+        <button class="tab" onclick="setLayer('qa',this)">QA story</button>
+      </div>
+      <div id="layerContent"></div>
+    </div>
+    <div class="card">
+      <h2>Selected scenario outcome</h2>
+      <div class="grid two">
+        <div class="kpi"><label>Customer goal</label><strong id="goalKpi">Know risk</strong></div>
+        <div class="kpi"><label>EVEREST action</label><strong id="actionKpi">Scan + classify</strong></div>
+        <div class="kpi"><label>Governance</label><strong id="govKpi">Guardian gate</strong></div>
+        <div class="kpi"><label>Result</label><strong id="resultKpi">Evidence</strong></div>
+      </div>
+    </div>
+  </section>
+
+  <div class="card" style="margin-top:12px">
+    <h2>2. End-to-end customer story chapters</h2>
+    <div class="timeline" id="chapters"></div>
+  </div>
+
+  <section class="flowLayout">
+    <div class="swim"><div class="lanes" id="swimlanes"></div></div>
+    <aside class="inspect"><div class="card"><h2 id="inspectTitle">Inspect a step</h2><div id="inspectContent"></div></div></aside>
+  </section>
+
+  <div class="grid two" style="margin-top:12px">
+    <div class="card">
+      <h2>3. Why DSPM, classification, AI and Guardian exist</h2>
+      <div class="whyGrid" id="whyGrid"></div>
+    </div>
+    <div class="card">
+      <h2>4. Storage and evidence map</h2>
+      <div class="storeMap" id="stores"></div>
+    </div>
+  </div>
+
+  <div class="outcomes" style="margin-top:12px">
+    <div class="card good"><h2>5. What the customer wins</h2><ul class="list" id="wins"></ul></div>
+    <div class="card bad"><h2>6. What customer loses if they do nothing</h2><ul class="list" id="risks"></ul></div>
+    <div class="card"><h2>7. What QA must verify</h2><ul class="list" id="qaChecks"></ul></div>
+  </div>
+
+  <div class="card" style="margin-top:12px">
+    <h2>8. Technical and non-technical questions answered</h2>
+    <div class="faq"><div class="qList" id="questions"></div><div id="answer" class="inspectBox"></div></div>
+  </div>
+</div>
+</main>
+</div>
+<script>
+const lanes=['Customer','Portal / UI','Control Plane','Orchestrator','Item 13','Connector','Azure Blob','DuckDB Working Memory','Guardian','Action Executor','Elasticsearch','Evidence / Audit'];
+function s(n,title,from,to,api,input,producer,consumer,output,why,business){return{n,title,from,to,api,input,producer,consumer,output,why,business}}
+const scenarios={
+ discover:{label:'Autonomous Scan',sub:'Know what exists',kind:'Happy path',goal:'Know risk',action:'Scan + classify',gov:'Policy guardrails',result:'Evidence + recommendations',
+ problem:'The customer has many files in Azure Blob and does not know which are sensitive, stale, risky, or AI-ready. They need governed discovery without copying all data out.',
+ business:'Customer starts with visibility: What data do I have, what is sensitive, what is risky, and what should I do next?',
+ technical:'Portal submits intent. Orchestrator builds context, connector discovers metadata, DuckDB aggregates signals, Guardian evaluates allowed recommendations, summaries go to Elasticsearch.',
+ qa:'QA validates source setup, scan execution, normalized outputs, dashboard summary, evidence, no raw secret exposure, and no mutation in dry-run.',
+ steps:[
+  s(1,'Customer chooses autonomous scan',0,1,'UI intent submit','source_id, scan_type, scope','Customer','Portal','Intent submitted','Customer starts with a business goal, not raw API calls.','They want visibility before taking risk.'),
+  s(2,'Portal sends request envelope',1,3,'POST /v1/orchestrator/requests','ActionRequestEnvelope','Portal','Orchestrator','Request accepted','Creates one enforced runtime entry point.','Prevents bypassing policy flow.'),
+  s(3,'Orchestrator requests trusted policy',3,4,'GET /v1/policy/resolve','policy_context, artifact_ref','Orchestrator','Item 13','Trusted policy/LKG','Execution uses signed policy only.','Customer can trust results.'),
+  s(4,'Connector discovers metadata',3,5,'connector.discover(scope)','container, prefix, cursor','Orchestrator','Connector','Object references','Connector hides Azure-specific details.','Future connectors can reuse pattern.'),
+  s(5,'Azure Blob read in place',5,6,'Azure list/read properties','reference, range, metadata request','Connector','Azure Blob','Metadata, tags, ACL hints','Zero-copy default avoids full duplicate copies.','Customer data stays near source.'),
+  s(6,'Signals stored in DuckDB',3,7,'batch.write_signals','normalized objects, metadata, score inputs','Orchestrator','DuckDB','Transient batch state','DuckDB is working memory, not permanent raw store.','Large scans can aggregate efficiently.'),
+  s(7,'DSPM/classification creates risk signals',3,7,'classify(batch)','metadata, features, rules','Orchestrator','DuckDB','classification, risk score','DSPM turns raw metadata into risk/compliance context.','Customer sees meaning, not just file list.'),
+  s(8,'Guardian evaluates recommendations',3,8,'POST /v1/guardian/decision','policy hash, risk, region, action candidates','Orchestrator','Guardian','allow/review/block','Guardian prevents unsafe actions.','Customer gets governance guardrails.'),
+  s(9,'Allowed results are summarized',3,10,'POST /v1/index/summary','normalized signals, decision refs','Orchestrator','Elasticsearch','Searchable summary','Fast dashboards without moving raw content.','Customer can explore findings.'),
+  s(10,'Evidence and provenance recorded',8,11,'POST /v1/evidence','decision, policy hash, receipt','Guardian/Orchestrator','Evidence/Audit','Proof package','Audit shows who/what/why/when.','Customer can defend decisions.'),
+  s(11,'Customer reviews outcomes',1,0,'GET dashboard/evidence','summary, wins, risks','Portal','Customer','Recommended next steps','Closes loop from discovery to action.','Customer knows what to fix first.')
+ ]},
+ ai:{label:'AI Recommendation',sub:'Suggest next action',kind:'Governed AI',goal:'Reduce manual analysis',action:'Recommend, not mutate',gov:'Guardian required',result:'HITL or allowed action',
+ problem:'Customer has findings but does not know which remediation is safest. AI helps explain and recommend, but cannot mutate data directly.',
+ business:'AI shortens analysis time by explaining what the finding means and suggesting the safest next action.',
+ technical:'AI consumes governed signals, not uncontrolled raw content by default. Recommendations return to Orchestrator and must pass Guardian before execution.',
+ qa:'QA verifies AI cannot execute mutation directly and risky recommendations create HITL or Guardian review.',
+ steps:[
+  s(1,'Customer asks for recommendation',0,1,'POST /v1/ai/recommend','finding_id, policy_context','Customer','Portal','AI request','Customer wants help prioritizing.','Less manual investigation.'),
+  s(2,'Orchestrator builds safe context',1,3,'POST /v1/orchestrator/requests','finding refs, bounded context','Portal','Orchestrator','Context package','AI receives governed inputs.','Sensitive content is controlled.'),
+  s(3,'Signals fetched from index/working memory',3,10,'GET /v1/index/signals','object refs, decision refs','Orchestrator','Elasticsearch','governed signals','Avoids sending full raw data by default.','Faster and safer.'),
+  s(4,'AI creates recommendation',3,3,'local/model recommend','signals, policy explanation','AI helper','Orchestrator','recommendation only','AI cannot mutate.','Human trust and guardrails.'),
+  s(5,'Guardian evaluates recommendation',3,8,'POST /v1/guardian/decision','recommendation, risk, policy hash','Orchestrator','Guardian','ALLOW / HITL / BLOCK','Policy decides if action is safe.','Prevents AI overreach.'),
+  s(6,'HITL task or action plan created',8,1,'POST /v1/tasks or plan','decision, obligations','Guardian','Portal','Task/action plan','Customer reviews when required.','Safer automation.')
+ ]},
+ classify:{label:'Classification / DSPM',sub:'Why classify?',kind:'Risk discovery',goal:'Identify sensitive data',action:'Classify + score',gov:'Policy-mapped',result:'Risk and labels',
+ problem:'The customer cannot govern data unless they know what type of data it is. Classification and DSPM convert storage inventory into risk and policy signals.',
+ business:'Classification answers: Is this HR data? financial data? sensitive data? old data? regulated data? AI-ready data?',
+ technical:'Metadata, tags, names, bounded feature extraction, and optional rules/model detectors produce normalized signals and risk scores.',
+ qa:'QA verifies classifications are explainable, evidence-backed, and do not expose raw sensitive content unnecessarily.',
+ steps:[
+  s(1,'Customer runs classification scan',0,1,'POST scan intent','scan_type=classification','Customer','Portal','Classification request','Customer wants sensitivity map.','Know what needs controls.'),
+  s(2,'Orchestrator selects detectors',3,4,'GET policy/workflow','classification policy, detector config','Orchestrator','Item 13','detector workflow','Detectors follow signed policy.','Consistent classification.'),
+  s(3,'Connector reads metadata/features',5,6,'read metadata/range','object refs, bounded preview','Connector','Azure Blob','features','Data minimization by default.','Privacy safer.'),
+  s(4,'DSPM scores objects',3,7,'classify batch','features, rules, model profile','Orchestrator','DuckDB','risk scores, labels','Risk score drives governance.','Prioritize effort.'),
+  s(5,'Guardian validates recommended label/action',3,8,'POST /guardian/decision','classification, action candidate','Orchestrator','Guardian','allow/review/block','Labels/actions still governed.','Avoid wrong auto-tagging.'),
+  s(6,'Evidence stores explanation',3,11,'POST evidence','rules matched, reason','Orchestrator','Evidence','classification proof','QA/customer can audit.','Trustworthy classification.')
+ ]},
+ tag:{label:'Safe Auto-Tagging',sub:'Allowed mutation',kind:'Controlled action',goal:'Automate safe fixes',action:'Apply metadata/tag',gov:'Guardian allow',result:'Action receipt',
+ problem:'Customer wants to improve governance posture automatically, but only for safe low-risk changes.',
+ business:'Safe auto-tagging reduces manual effort and improves search, policy, compliance, and AI readiness.',
+ technical:'Guardian must allow the action. Action Executor applies only metadata/index tags through connector. ActionReceipt and provenance are recorded.',
+ qa:'QA verifies no write happens without Guardian allow, policy hash, action receipt, and audit event.',
+ steps:[
+  s(1,'System proposes safe tag',3,8,'POST /guardian/decision','action=apply_metadata_tag','Orchestrator','Guardian','ALLOW with obligations','Only safe action candidates proceed.','Automates low-risk cleanup.'),
+  s(2,'Action Executor receives decision',8,9,'execute(decision_id)','allowed scope, object refs','Guardian','Action Executor','authorized action','Executor cannot act without decision.','Non-bypassable control.'),
+  s(3,'Connector applies tag',9,5,'connector.applyAction','metadata/index tags','Action Executor','Connector','tag request','Storage-specific write isolated.','Reusable for future connectors.'),
+  s(4,'Azure Blob updated',5,6,'Azure set metadata/tags','blob ref, tags','Connector','Azure Blob','updated metadata','Only approved metadata changes.','Improved governance.'),
+  s(5,'Action receipt recorded',9,11,'POST /v1/evidence/action-receipt','old/new values, status, hash','Action Executor','Evidence','receipt','Proves what changed.','Audit-ready automation.')
+ ]},
+ blocked:{label:'Blocked Region Transfer',sub:'Negative path',kind:'Blocked',goal:'Avoid illegal transfer',action:'Block/HITL',gov:'Guardian block',result:'No mutation',
+ problem:'A user or policy asks to move or expose data across a restricted jurisdiction boundary.',
+ business:'EVEREST protects the customer from unauthorized data movement and regulatory exposure.',
+ technical:'Guardian evaluates source region, target region, policy bundle hash, actor, and object context. Decision is BLOCK or HITL.',
+ qa:'QA verifies action executor is never called when Guardian returns BLOCK.',
+ steps:[
+  s(1,'User requests India → UAE transfer',0,1,'POST operation intent','operation=migration, source=IN, target=AE','Customer','Portal','request captured','User may not know policy risk.','Prevents accidental violation.'),
+  s(2,'Orchestrator builds request context',1,3,'ActionRequestEnvelope','actor, region, operation, object refs','Portal','Orchestrator','context ready','Single controlled entry point.','No direct mutation.'),
+  s(3,'Guardian evaluates jurisdiction',3,8,'POST /guardian/decision','policy hash, region, action','Orchestrator','Guardian','BLOCK + HITL','Policy applies before action.','Legal control.'),
+  s(4,'Action Executor is not invoked',8,9,'no call','decision=BLOCK','Guardian','Action Executor','blocked path','Fail closed for mutation.','No unauthorized movement.'),
+  s(5,'Provenance records block',8,11,'POST evidence','decision, reason, HITL','Guardian','Evidence','block proof','Audit trail includes blocked attempts.','Compliance proof.')
+ ]},
+ failure:{label:'Agent Failure Recovery',sub:'Resiliency',kind:'Recovery',goal:'Resume safely',action:'Checkpoint/retry',gov:'Lease TTL',result:'Recoverable run',
+ problem:'Large scans may fail due to machine restart, network loss, or agent crash. Customer needs safe recovery without losing proof.',
+ business:'The customer does not want to restart million-file scans from zero or create duplicate evidence.',
+ technical:'Orchestrator keeps leases and checkpoints. DuckDB/local state stores batch progress. Control Plane sees heartbeat loss and retry/resume path.',
+ qa:'QA verifies checkpoint saved, lease expires, retry resumes, and partial evidence is marked correctly.',
+ steps:[
+  s(1,'Batch scan starts',3,5,'discover batch','batch_id, cursor','Orchestrator','Connector','batch running','Large scans work in chunks.','Scale safely.'),
+  s(2,'Checkpoint written',3,7,'write checkpoint','batch_id, last_marker','Orchestrator','DuckDB','checkpoint saved','Progress is durable enough for retry.','No full restart.'),
+  s(3,'Agent heartbeat lost',3,2,'heartbeat timeout','lease_id','Control Plane','Orchestrator','lease expired','Failure detected.','Controlled recovery.'),
+  s(4,'Resume path created',2,3,'reassign lease','checkpoint, retry_count','Control Plane','Orchestrator','resume/retry','Run can continue safely.','Reliable enterprise operation.'),
+  s(5,'Audit records recovery',3,11,'POST evidence','failure, checkpoint, retry','Orchestrator','Evidence','recovery proof','QA sees exact behavior.','Trustworthy resilience.')
+ ]}
+};
+
+const whyCards=[
+ ['DSPM','Finds sensitive, stale, risky, or regulated data so the customer knows what to govern.'],
+ ['Classification','Turns raw storage inventory into business meaning: HR, finance, contracts, PII, AI-ready, high risk.'],
+ ['AI recommendation','Explains findings and suggests next best action, but cannot mutate data directly.'],
+ ['Guardian Agent','Final non-bypassable safety gate before any mutation. It allows, blocks, or requires HITL.']
+];
+const stores=[
+ ['Source config / jobs / leases','Control Plane DB','Permanent control records; no raw secret returned.'],
+ ['DuckDB working memory','Data Agent local state','Transient batch signals, normalized objects, checkpoints.'],
+ ['Policy artifacts','Git + trust store','Signed bundle, hash, version, LKG fallback.'],
+ ['Elasticsearch summary','Platform search/index','Aggregated normalized signals and outcome references.'],
+ ['Decision provenance','Guardian-owned evidence','Policy hash, rules, reasoning, decision, obligations.'],
+ ['Audit / export evidence','Evidence store','Action receipt, manifest, summary, compliance proof.']
+];
+const questions=[
+ ['Why will the customer do this action?','Because they need to know what data exists, what is sensitive, what is risky, and what can be safely automated before they move, expose, tag, or use data for AI.'],
+ ['Why DSPM?','DSPM converts storage inventory into data security posture: sensitive data, risk, ownership, compliance exposure, and remediation priority.'],
+ ['Why classification?','Files are not useful to govern as raw paths only. Classification tells whether objects are contracts, HR, finance, PII, PHI, keys, stale, public, or AI-ready.'],
+ ['Why will AI suggest anything?','AI reduces manual analysis by explaining findings and recommending actions. It does not directly mutate. Its suggestions go back through Orchestrator and Guardian.'],
+ ['Where does Guardian sit?','Guardian is called after enough context is built and before any mutation. It is the mandatory final runtime gate for actions.'],
+ ['What is customer data movement?','By default, Everest reads in place and avoids persistent full duplicate copies. It uploads governed findings, normalized signals, evidence, and references, not raw datasets.'],
+ ['What is stored where?','Control Plane stores permanent control/evidence summaries. DuckDB stores transient local working state. Elasticsearch stores searchable summaries. Evidence stores provenance and audit proof.'],
+ ['What happens if no action is taken?','Risk remains unknown, sensitive data may be moved incorrectly, AI may use poor-quality data, audits may fail, and manual investigation cost stays high.'],
+ ['What should QA test?','Happy path, negative paths, no secret exposure, no mutation without Guardian, LKG fallback, agent failure recovery, region block, evidence/provenance completeness.'],
+ ['How will future connectors work?','Each connector implements the same generic contract: discover, validate, scan, normalize, apply approved action, return evidence. Azure Blob is the first reference connector.']
+];
+let current='discover',activeStep=0,layer='business',timer=null;
+function esc(v){return String(v??'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'","&#039;")}
+function renderScenarios(){document.getElementById('scenarios').innerHTML=Object.entries(scenarios).map(([k,v])=>`<button class="scenario ${k===current?'active':''} ${v.kind==='Blocked'||v.kind==='Recovery'?'negative':''}" onclick="selectScenario('${k}')"><strong>${esc(v.label)}</strong><span>${esc(v.sub)}</span></button>`).join('')}
+function selectScenario(k){current=k;activeStep=0;const sc=scenarios[k];document.getElementById('scenarioKind').textContent=sc.kind;document.getElementById('scenarioKind').className='pill '+(sc.kind==='Blocked'?'red':sc.kind==='Recovery'?'orange':'green');document.getElementById('storyTitle').textContent=sc.problem.split('.')[0]+'.';document.getElementById('storyProblem').textContent=sc.problem;document.getElementById('goalKpi').textContent=sc.goal;document.getElementById('actionKpi').textContent=sc.action;document.getElementById('govKpi').textContent=sc.gov;document.getElementById('resultKpi').textContent=sc.result;renderScenarios();renderLayer();renderChapters();renderSwim();inspect(0);renderOutcomes();}
+function setLayer(l,btn){layer=l;document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));btn.classList.add('active');renderLayer()}
+function renderLayer(){const sc=scenarios[current];const map={business:sc.business,technical:sc.technical,qa:sc.qa};document.getElementById('layerContent').innerHTML=`<div class="inspectBox"><b>${layer==='business'?'Why customer cares':layer==='technical'?'How EVEREST works':'What QA validates'}</b><p>${esc(map[layer])}</p></div>`}
+function renderChapters(){document.getElementById('chapters').innerHTML=scenarios[current].steps.map((st,i)=>`<div class="chapter ${i===activeStep?'active':''}" onclick="inspect(${i})"><div class="num">${st.n}</div><b>${esc(st.title)}</b><span>${esc(st.business)}</span></div>`).join('')}
+function renderSwim(){const sc=scenarios[current];const head=`<div class="head"><div>Step</div>${lanes.map((l,i)=>`<div>${i+1}<br>${esc(l)}</div>`).join('')}</div>`;const rows=sc.steps.map((st,i)=>{const min=Math.min(st.from,st.to),max=Math.max(st.from,st.to);let cells=lanes.map((_,idx)=>{let c='';if(idx===st.from||idx===st.to)c=`<div class="step ${i===activeStep?'active':''}" onclick="inspect(${i})"><b>${idx===st.from?'Producer':'Consumer'}</b><br>${esc(st.title)}<br><span class="muted">${esc(st.api)}</span></div>`;else if(idx>min&&idx<max)c=`<div class="arrow ${sc.kind==='Blocked'?'orange':'green'}"></div>`;return `<div class="cell">${c}</div>`}).join('');return `<div class="row ${sc.kind==='Blocked'?'neg':''}"><div class="numCell"><span class="bubble">${st.n}</span></div>${cells}</div>`}).join('');document.getElementById('swimlanes').innerHTML=head+rows}
+function inspect(i){activeStep=i;const st=scenarios[current].steps[i];document.getElementById('inspectTitle').textContent=`Inspect: Step ${st.n} — ${st.title}`;document.getElementById('inspectContent').innerHTML=`
+<div class="inspectBox"><h3>High-level customer meaning</h3><p>${esc(st.business)}</p></div>
+<div class="inspectBox"><h3>What happened</h3><p>${esc(st.title)}</p></div>
+<div class="inspectBox"><h3>API / operation</h3><span class="pill blue">${esc(st.api)}</span></div>
+<div class="inspectBox"><h3>Input</h3><p>${esc(st.input)}</p></div>
+<div class="inspectBox"><h3>Producer / Consumer</h3><div class="kv"><b>Producer</b><span>${esc(st.producer)}</span><b>Consumer</b><span>${esc(st.consumer)}</span></div></div>
+<div class="inspectBox"><h3>Expected output</h3><p>${esc(st.output)}</p></div>
+<div class="inspectBox"><h3>Why it matters technically</h3><p>${esc(st.why)}</p></div>`;renderChapters();renderSwim()}
+function renderWhy(){document.getElementById('whyGrid').innerHTML=whyCards.map(w=>`<div class="whyCard"><b>${esc(w[0])}</b><p>${esc(w[1])}</p></div>`).join('')}
+function renderStores(){document.getElementById('stores').innerHTML=stores.map(s=>`<div class="storeItem"><div><b>${esc(s[0])}</b><div class="muted small">${esc(s[2])}</div></div><span class="pill purple">${esc(s[1])}</span></div>`).join('')}
+function renderOutcomes(){const neg=scenarios[current].kind==='Blocked'||scenarios[current].kind==='Recovery';const wins=neg?['Unsafe action prevented','Clear reason and evidence','HITL or retry path created','Audit remains complete','Customer avoids hidden failure']:['Faster discovery','Governed automation','Better compliance posture','Evidence for audit','Cleaner AI-ready data','Lower manual effort'];const risks=['Unknown sensitive data','Policy violations or fines','Bad AI/analytics input','Manual delays and cost','Incomplete audit proof','Unsafe data movement'];const checks=['No console/runtime errors','No mutation without Guardian','Correct evidence/provenance','No raw secret exposure','Friendly failure handling','Expected business outcome visible'];document.getElementById('wins').innerHTML=wins.map(x=>`<li>✅ ${esc(x)}</li>`).join('');document.getElementById('risks').innerHTML=risks.map(x=>`<li>⚠️ ${esc(x)}</li>`).join('');document.getElementById('qaChecks').innerHTML=checks.map(x=>`<li>☑️ ${esc(x)}</li>`).join('')}
+function renderQuestions(){document.getElementById('questions').innerHTML=questions.map((q,i)=>`<button class="${i===0?'active':''}" onclick="answer(${i},this)">${esc(q[0])}</button>`).join('');answer(0,document.querySelector('#questions button'))}
+function answer(i,btn){document.querySelectorAll('#questions button').forEach(b=>b.classList.remove('active'));btn?.classList.add('active');document.getElementById('answer').innerHTML=`<h3>${esc(questions[i][0])}</h3><p>${esc(questions[i][1])}</p>`}
+function setRole(r){document.querySelectorAll('.role').forEach(b=>b.classList.remove('active'));document.querySelector(`[data-role="${r}"]`).classList.add('active')}
+function play(){clearInterval(timer);let i=0;inspect(0);timer=setInterval(()=>{i++;if(i>=scenarios[current].steps.length){clearInterval(timer);return}inspect(i)},1300)}
+function resetView(){clearInterval(timer);selectScenario('discover')}
+renderScenarios();selectScenario('discover');renderWhy();renderStores();renderQuestions();
+</script>
+</body>
+</html>

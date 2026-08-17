@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://everest.local/contracts/connector_runtime_request.schema.json",
+  "title": "Everest Connector Runtime Request",
+  "type": "object",
+  "required": ["connector_id", "operation"],
+  "properties": {
+    "runtime_request_id": { "type": "string" },
+    "connector_id": { "type": "string" },
+    "operation": {
+      "type": "string",
+      "enum": ["health", "discover_sources", "scan_metadata", "preview_action", "execute_action"]
+    },
+    "execution_id": { "type": "string" },
+    "data_store_id": { "type": "string" },
+    "source_region": { "type": "string" },
+    "target_region": { "type": "string" },
+    "action_mode": {
+      "type": "string",
+      "enum": ["dry_run", "apply"]
+    },
+    "preview_only": { "type": "boolean" },
+    "guardian_decision": {
+      "type": "string",
+      "enum": ["pending", "allow", "deny", "review_required"]
+    },
+    "hitl_approved": { "type": "boolean" },
+    "confirmation": { "type": "string" },
+    "runtime_endpoint": { "type": "string" },
+    "timeout_seconds": { "type": "integer", "minimum": 1, "maximum": 120 },
+    "scope": { "type": "object" },
+    "object": { "type": "object" },
+    "action": { "type": "object" },
+    "config": { "type": "object" }
+  }
+}

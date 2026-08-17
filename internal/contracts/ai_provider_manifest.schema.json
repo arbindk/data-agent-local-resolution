@@ -1,0 +1,181 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://everest.local/contracts/ai_provider_manifest.schema.json",
+  "title": "Everest AI Provider Manifest",
+  "type": "object",
+  "required": [
+    "provider_id",
+    "display_name",
+    "provider_type",
+    "version",
+    "deployment_modes",
+    "runtime",
+    "capabilities",
+    "safety",
+    "data_policy"
+  ],
+  "properties": {
+    "provider_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9_-]{2,63}$"
+    },
+    "display_name": { "type": "string" },
+    "provider_type": { "type": "string" },
+    "vendor": { "type": "string" },
+    "version": { "type": "string" },
+    "status": {
+      "type": "string",
+      "enum": ["available", "configurable", "planned", "custom_manifest", "disabled"]
+    },
+    "description": { "type": "string" },
+    "deployment_modes": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": ["cloud_connected", "private_network", "air_gapped", "hybrid"]
+      },
+      "minItems": 1
+    },
+    "network_modes": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "runtime": {
+      "type": "object",
+      "required": ["kind"],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": ["builtin", "http", "local_http", "custom_http", "external_process"]
+        },
+        "protocol": { "type": "string" },
+        "endpoint": { "type": "string" },
+        "health_check": { "type": "string" },
+        "entrypoint": { "type": "string" },
+        "platforms": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "auth_schemes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["scheme", "display_name"],
+        "properties": {
+          "scheme": { "type": "string" },
+          "display_name": { "type": "string" },
+          "secret_fields": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "offline_ready": { "type": "boolean" }
+        }
+      }
+    },
+    "config_fields": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "label", "type", "required"],
+        "properties": {
+          "name": { "type": "string" },
+          "label": { "type": "string" },
+          "type": { "type": "string" },
+          "required": { "type": "boolean" },
+          "secret": { "type": "boolean" },
+          "options": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "description": { "type": "string" }
+        }
+      }
+    },
+    "model_options": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["model_id", "display_name"],
+        "properties": {
+          "model_id": { "type": "string" },
+          "display_name": { "type": "string" },
+          "capabilities": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "deployment_name_required": { "type": "boolean" }
+        }
+      }
+    },
+    "capabilities": {
+      "type": "object",
+      "properties": {
+        "chat": { "type": "boolean" },
+        "recommendations": { "type": "boolean" },
+        "classification": { "type": "boolean" },
+        "summarization": { "type": "boolean" },
+        "policy_explanation": { "type": "boolean" },
+        "action_planning": { "type": "boolean" },
+        "prompt_grounding": { "type": "boolean" },
+        "structured_json": { "type": "boolean" },
+        "tool_calling": { "type": "boolean" },
+        "streaming": { "type": "boolean" },
+        "embeddings": { "type": "boolean" },
+        "offline_inference": { "type": "boolean" },
+        "supported_tasks": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "supported_modalities": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "safety": {
+      "type": "object",
+      "properties": {
+        "advisory_only_default": { "type": "boolean" },
+        "hitl_submission_allowed": { "type": "boolean" },
+        "autonomous_apply_allowed": { "type": "boolean" },
+        "prompt_audit_required": { "type": "boolean" },
+        "evidence_grounding_required": { "type": "boolean" },
+        "redaction_supported": { "type": "boolean" },
+        "allowed_automation_modes": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["recommend_only", "submit_hitl_approvals"]
+          }
+        },
+        "blocked_actions": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "data_policy": {
+      "type": "object",
+      "properties": {
+        "customer_data_leaves_environment": { "type": "boolean" },
+        "supports_private_endpoint": { "type": "boolean" },
+        "supports_air_gap": { "type": "boolean" },
+        "retention_notes": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "residency_notes": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "data_handling_notes": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "support": { "type": "object" }
+  }
+}

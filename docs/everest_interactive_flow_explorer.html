@@ -1,0 +1,306 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<link rel="icon" href="data:,">
+<title>EVEREST Interactive Flow Explorer — Azure Blob</title>
+<style>
+:root{
+  --bg:#07111f;--bg2:#0b1728;--panel:#0f1d33;--panel2:#12243f;--ink:#eaf2ff;--muted:#9fb3d1;--line:#29415f;
+  --blue:#38bdf8;--green:#22c55e;--purple:#a78bfa;--orange:#fb923c;--red:#f87171;--amber:#fbbf24;--cyan:#67e8f9;
+  --shadow:0 22px 60px rgba(0,0,0,.36);--radius:18px;
+}
+*{box-sizing:border-box}
+body{margin:0;background:radial-gradient(circle at 10% 0%,#11264a 0,#07111f 35%,#030712 100%);color:var(--ink);font:13px/1.45 Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial}
+button,input,select{font:inherit}
+.app{display:grid;grid-template-columns:230px 1fr;min-height:100vh}
+.side{position:sticky;top:0;height:100vh;overflow:auto;padding:18px 12px;background:rgba(3,8,18,.86);border-right:1px solid var(--line)}
+.logo{display:flex;gap:10px;align-items:center;margin-bottom:14px}.mount{width:35px;height:35px;border-radius:10px;background:linear-gradient(135deg,#60a5fa,#a78bfa);display:grid;place-items:center;font-weight:900}.logo b{font-size:18px;letter-spacing:.08em}
+.role{border:1px solid var(--line);background:rgba(255,255,255,.045);padding:12px;border-radius:16px;margin:8px 0;cursor:pointer;color:var(--ink);width:100%;text-align:left}
+.role:hover,.role.active{border-color:var(--blue);box-shadow:0 0 0 3px rgba(56,189,248,.12);background:rgba(56,189,248,.10)}
+.role strong{display:block;font-size:14px}.role span{color:var(--muted);font-size:11px}
+.side .smallBtn{width:100%;margin-top:8px;border:1px solid var(--line);border-radius:12px;background:rgba(255,255,255,.05);color:var(--ink);padding:9px;cursor:pointer}
+.main{min-width:0}
+.top{position:sticky;top:0;z-index:10;padding:16px 22px;background:rgba(6,15,29,.86);backdrop-filter:blur(15px);border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;gap:16px}
+h1{font-size:24px;margin:0;font-weight:950;letter-spacing:-.02em}h2{font-size:16px;margin:0 0 10px}h3{font-size:14px;margin:0 0 8px}.muted{color:var(--muted)}.tiny{font-size:11px}.pill{display:inline-flex;align-items:center;border:1px solid var(--line);border-radius:999px;padding:5px 9px;font-weight:850;font-size:11px;background:rgba(255,255,255,.055)}
+.pill.green{color:#86efac;border-color:rgba(34,197,94,.35);background:rgba(34,197,94,.12)}.pill.red{color:#fca5a5;border-color:rgba(248,113,113,.35);background:rgba(248,113,113,.12)}.pill.orange{color:#fdba74;border-color:rgba(251,146,60,.35);background:rgba(251,146,60,.12)}.pill.purple{color:#c4b5fd;border-color:rgba(167,139,250,.35);background:rgba(167,139,250,.12)}.pill.blue{color:#7dd3fc;border-color:rgba(56,189,248,.35);background:rgba(56,189,248,.12)}
+.wrap{padding:18px;max-width:1660px}.card{background:linear-gradient(180deg,rgba(255,255,255,.055),rgba(255,255,255,.025));border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:15px}.grid{display:grid;gap:13px}.two{grid-template-columns:1.1fr .8fr}.three{grid-template-columns:repeat(3,1fr)}.four{grid-template-columns:repeat(4,1fr)}
+.scenarios{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:9px;margin:12px 0}.scenario{border:1px solid var(--line);background:rgba(255,255,255,.035);border-radius:14px;padding:10px;cursor:pointer;min-height:72px}.scenario:hover,.scenario.active{border-color:var(--blue);background:rgba(56,189,248,.10)}.scenario.negative{border-color:rgba(248,113,113,.35)}.scenario strong{display:block;font-size:12px}.scenario span{font-size:10px;color:var(--muted)}
+.banner{border:1px solid rgba(103,232,249,.25);background:rgba(103,232,249,.07);border-radius:16px;padding:12px;margin:12px 0;display:flex;justify-content:space-between;gap:10px;align-items:center}
+.btn{border:0;border-radius:11px;background:linear-gradient(135deg,#7c3aed,#2563eb);color:white;font-weight:900;padding:8px 10px;cursor:pointer}.btn.secondary{background:rgba(255,255,255,.07);border:1px solid var(--line)}.btn.green{background:linear-gradient(135deg,#059669,#22c55e)}.btn.red{background:linear-gradient(135deg,#dc2626,#fb7185)}
+.flowPanel{display:grid;grid-template-columns:1fr 385px;gap:13px}.swim{overflow:auto;border:1px solid var(--line);border-radius:18px;background:#071426}.lanes{min-width:1130px}.laneHead{display:grid;grid-template-columns:78px repeat(12,1fr);position:sticky;top:0;background:#0b1a2f;z-index:1;border-bottom:1px solid var(--line)}.laneHead div{padding:8px 5px;text-align:center;border-right:1px dashed #24405f;font-size:10px;color:#b7cdf1;font-weight:900}.row{display:grid;grid-template-columns:78px repeat(12,1fr);min-height:46px;border-bottom:1px solid rgba(41,65,95,.45)}.row .num{display:flex;align-items:center;justify-content:center}.bubble{width:25px;height:25px;border-radius:999px;background:rgba(34,197,94,.18);border:1px solid rgba(34,197,94,.45);display:grid;place-items:center;font-weight:950;color:#bbf7d0}.row.negative .bubble{background:rgba(248,113,113,.18);border-color:rgba(248,113,113,.5);color:#fecaca}.cell{border-right:1px dashed #1e3654;position:relative;padding:5px;font-size:10.5px;min-width:80px}.stepBox{border:1px solid transparent;border-radius:10px;padding:5px 6px;cursor:pointer;background:rgba(255,255,255,.02)}.stepBox:hover,.stepBox.active{background:rgba(56,189,248,.13);border-color:rgba(56,189,248,.45)}.arrow{height:2px;background:var(--blue);position:absolute;left:3px;right:3px;top:50%;box-shadow:0 0 10px rgba(56,189,248,.6)}.arrow.green{background:var(--green)}.arrow.orange{background:var(--orange)}.arrow.purple{background:var(--purple)}
+.inspect{position:sticky;top:88px;align-self:start}.inspectCard{border:1px solid var(--line);border-radius:16px;padding:12px;background:rgba(255,255,255,.035);margin-bottom:9px}.inspectCard h3{color:#dbeafe}.kv{display:grid;grid-template-columns:110px 1fr;gap:6px;font-size:12px}.kv b{color:#cbd5e1}.list{margin:0;padding-left:18px}.list li{margin:3px 0}
+.ops{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.op{border:1px solid var(--line);border-radius:15px;padding:12px;background:rgba(255,255,255,.035)}.op strong{display:block;color:#e0f2fe}.op small{display:block;color:var(--muted);margin:3px 0 8px}.op p{margin:5px 0;color:#cbd5e1;font-size:12px}
+.outcomes{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}.good{border-color:rgba(34,197,94,.35);background:rgba(34,197,94,.08)}.bad{border-color:rgba(248,113,113,.35);background:rgba(248,113,113,.08)}.storeMap{display:grid;gap:7px}.storeItem{display:flex;align-items:center;gap:10px;justify-content:space-between;border:1px solid var(--line);border-radius:12px;padding:9px;background:rgba(255,255,255,.035)}
+.faq{display:grid;grid-template-columns:310px 1fr;gap:12px}.qList button{width:100%;padding:9px;margin:4px 0;text-align:left;border:1px solid var(--line);border-radius:11px;background:rgba(255,255,255,.04);color:var(--ink);cursor:pointer}.qList button.active{border-color:var(--purple);background:rgba(167,139,250,.12)}
+.legend{display:flex;gap:7px;flex-wrap:wrap;margin-top:12px}.legend span{border:1px solid var(--line);border-radius:999px;padding:6px 9px;background:rgba(255,255,255,.04);font-size:11px}
+.glow{box-shadow:0 0 0 3px rgba(34,197,94,.12),0 0 25px rgba(34,197,94,.15)}
+@media(max-width:1180px){.app{grid-template-columns:1fr}.side{position:relative;height:auto}.flowPanel,.two,.three,.four,.outcomes,.faq{grid-template-columns:1fr}.scenarios{grid-template-columns:repeat(2,1fr)}.inspect{position:relative;top:0}}
+</style>
+</head>
+<body>
+<div class="app">
+<aside class="side">
+  <div class="logo"><div class="mount">E</div><div><b>EVEREST</b><div class="muted tiny">Interactive Explorer</div></div></div>
+  <div class="muted tiny">View as</div>
+  <button class="role active" data-role="customer" onclick="setRole('customer')"><strong>👤 Customer</strong><span>Run & review</span></button>
+  <button class="role" data-role="qa" onclick="setRole('qa')"><strong>🧪 QA</strong><span>Validate scenarios</span></button>
+  <button class="role" data-role="developer" onclick="setRole('developer')"><strong>🛠 Developer</strong><span>APIs & contracts</span></button>
+  <button class="role" data-role="architect" onclick="setRole('architect')"><strong>🏛 Architect</strong><span>Design & governance</span></button>
+  <button class="smallBtn" onclick="play()">▶ Play Scenario</button>
+  <button class="smallBtn" onclick="resetView()">↻ Reset View</button>
+</aside>
+<main class="main">
+<header class="top">
+  <div><h1>EVEREST Interactive Flow Explorer — Azure Blob</h1><div class="muted">One-page guided view of scenarios, components, APIs, evidence, outcomes, and next decisions.</div></div>
+  <div class="pill blue">Hover or click any item to inspect</div>
+</header>
+<div class="wrap">
+  <div class="card">
+    <h2>1. Choose a customer / QA scenario</h2>
+    <div class="scenarios" id="scenarios"></div>
+  </div>
+  <div class="banner" id="scenarioBanner">
+    <div><b id="scenarioTitle">Happy Path — Onboard & Quick Scan</b><div class="muted" id="scenarioDesc">Customer validates source, creates governed job, scans metadata, and reviews evidence.</div></div>
+    <div><span class="pill green" id="scenarioOutcome">Outcome: Success</span></div>
+  </div>
+
+  <div class="flowPanel">
+    <section class="swim">
+      <div class="lanes" id="swimlanes"></div>
+    </section>
+    <aside class="inspect">
+      <div class="card">
+        <h2 id="inspectTitle">Inspect: Step 1 — User Intent</h2>
+        <div id="inspectContent"></div>
+      </div>
+    </aside>
+  </div>
+
+  <div class="grid two" style="margin-top:13px">
+    <div class="card">
+      <h2>2. Scan operations customers can choose</h2>
+      <div class="ops" id="ops"></div>
+    </div>
+    <div class="card">
+      <h2>3. How to play this explorer</h2>
+      <ol class="list">
+        <li>Pick a scenario above.</li>
+        <li>Click any numbered step in the sequence.</li>
+        <li>Read the API, input, owner, consumer, and expected output.</li>
+        <li>Compare customer wins against risks if no action is taken.</li>
+      </ol>
+      <div class="legend">
+        <span>🔵 Control Plane</span><span>🟢 Data Agent</span><span>🟣 Item 13 / Policy</span><span>🟠 Guardian</span><span>⚫ External systems</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="outcomes" style="margin-top:13px">
+    <div class="card good">
+      <h2>4. Customer wins</h2>
+      <ul class="list" id="wins"></ul>
+    </div>
+    <div class="card bad">
+      <h2>5. Risk if no action</h2>
+      <ul class="list" id="risks"></ul>
+    </div>
+    <div class="card">
+      <h2>6. Where information is stored</h2>
+      <div class="storeMap" id="stores"></div>
+    </div>
+  </div>
+
+  <div class="grid two" style="margin-top:13px">
+    <div class="card">
+      <h2>7. Responsibilities & access</h2>
+      <div id="responsibilities"></div>
+    </div>
+    <div class="card">
+      <h2>8. Sync vs async / scale model</h2>
+      <div id="scaleModel"></div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:13px">
+    <h2>9. Technical and non-technical Q&A</h2>
+    <div class="faq">
+      <div class="qList" id="questions"></div>
+      <div id="answer" class="inspectCard"></div>
+    </div>
+  </div>
+</div>
+</main>
+</div>
+<script>
+const lanes=[
+ 'User / Operator','EVEREST UI','Control Plane','Policy Artifact Store','Item 13 Resolver','Workflow Resolver','Guardian Agent','Data Agent','Azure Blob Source','Working Store','Evidence Store','Audit / Export'
+];
+
+const scenarios={
+ happy:{label:'Onboard Source',sub:'Happy Path',type:'positive',outcome:'Outcome: Success',desc:'Customer validates source, creates governed job, scans metadata, and reviews evidence.',
+ steps:[
+  s(1,'User clicks “Onboard Azure Source”',0,1,'POST /v1/controlplane/register-source','source_id, connector_id, scope, tenant_id','User / UI','Control Plane','Source record created','Starts governed onboarding.'),
+  s(2,'Control Plane stores source config',1,2,'POST /sources/register','source config, credential reference','Control Plane','Control Plane DB','Source + config saved','Secrets stay hidden; only references are stored.'),
+  s(3,'User clicks “Run Quick Scan”',0,1,'POST /v1/controlplane/run-next-lease','source_id, scan_type=quick','User / UI','Control Plane','Accepted; run requested','Customer starts governed scan.'),
+  s(4,'Lease issued to Data Agent',2,7,'GET/POST lease assignment','lease_id, token, ttl, policy_ref','Control Plane','Data Agent','Lease delivered','Agent can only execute assigned work.'),
+  s(5,'Item 13 resolves trusted policy',7,4,'GET /v1/policy/latest','policy_ref, artifact hash, signature','Data Agent','Item 13 Resolver','Trusted active policy or LKG','Prevents unknown policy execution.'),
+  s(6,'Workflow Resolver loads scan workflow',4,5,'GET /v1/workflow/{type}','scan_type, policy context','Item 13 / Orchestrator','Workflow Resolver','Workflow definition','Keeps operation steps consistent.'),
+  s(7,'Data Agent scans Azure Blob in place',7,8,'Azure Blob list/read metadata','container, prefix, page token','Data Agent Connector','Azure Blob','Blob metadata','Zero-copy default: no full dataset copied.'),
+  s(8,'Normalized objects written',7,9,'POST /v1/objects/batch','object_id, path, size, tags, metadata','Data Agent','Working Store','Normalized object rows','Future connectors reuse the same model.'),
+  s(9,'Guardian evaluates policies and actions',7,6,'POST /v1/decision/evaluate','normalized objects, policy, risk, region','Data Agent','Guardian Agent','ALLOW / REVIEW / BLOCK','No mutation can bypass Guardian.'),
+  s(10,'Evidence and results uploaded',7,10,'POST /v1/evidence/upload','manifest, action results, provenance','Evidence Publisher','Control Plane Evidence','Evidence recorded','Audit and customer proof become available.'),
+  s(11,'Dashboards refresh',10,11,'GET /v1/dashboard/summary','execution_id','UI','Control Plane','Dashboard data','Customer sees risk, compliance, and readiness.'),
+  s(12,'Customer reviews outcome',11,0,'UI Review','findings, evidence, recommendations','EVEREST UI','Customer','Decision-ready outcome','Customer can act with proof.')
+ ]},
+ region:{label:'Blocked Region Transfer',sub:'India → UAE',type:'negative',outcome:'Outcome: Blocked',desc:'A region transfer violates policy. Guardian blocks and requires HITL.',
+ steps:[
+  s(1,'User requests India → UAE transfer',0,1,'POST /v1/operation/request','operation=migration, source=IN, target=AE','User','UI / Control Plane','Request captured','Shows risky governance scenario.'),
+  s(2,'Control Plane builds request envelope',1,2,'POST /v1/envelope','actor, role, source, operation, boundary','UI','Orchestrator','Envelope created','Normalizes request.'),
+  s(3,'Item 13 verifies policy bundle',2,4,'GET /v1/policy/latest','policy_ref, hash, signature','Orchestrator','Item 13','Policy verified','Decision uses trusted policy.'),
+  s(4,'Guardian evaluates region rule',7,6,'POST /v1/decision/evaluate','IN→AE, rules, actor, object refs','Orchestrator','Guardian Agent','BLOCK + HITL','Policy prevents non-compliant transfer.'),
+  s(5,'Action Executor blocked',6,7,'No mutation dispatched','decision_id=BLOCK','Guardian Agent','Action Executor','No action executed','Fail-safe behavior.'),
+  s(6,'Provenance and audit recorded',6,10,'POST /v1/evidence/upload','decision, reason, HITL flag','Guardian / Orchestrator','Evidence Store','Audit proof recorded','Customer can prove why it was blocked.')
+ ]},
+ signature:{label:'Policy Signature Mismatch',sub:'LKG fallback',type:'negative',outcome:'Outcome: Degraded',desc:'Signed policy fails verification; Item 13 falls back or blocks.',
+ steps:[
+  s(1,'Run scan requests policy',7,4,'GET /v1/policy/latest','policy_ref','Data Agent','Item 13','Artifact fetched','Policy needed before execution.'),
+  s(2,'Checksum/signature validation fails',4,4,'Verify hash/signature','artifact, expected_hash, signature','Item 13','Trust Store','Invalid artifact','Prevents tampered policy.'),
+  s(3,'Last Known Good is checked',4,4,'Read LKG cache','data_store_id, policy_id','Item 13','Local Cache','LKG available or missing','Keeps safe operation if trusted fallback exists.'),
+  s(4,'Execution degraded or blocked',4,7,'Resolver result','trust_status=degraded/block','Item 13','Orchestrator','Fallback or block','No untrusted policy execution.'),
+  s(5,'Audit records trust event',7,10,'POST /v1/evidence/upload','policy hash, failure reason','Orchestrator','Evidence Store','POLICY_FALLBACK event','Operator gets traceable proof.')
+ ]},
+ guardianDown:{label:'Guardian Unavailable',sub:'Fail closed',type:'negative',outcome:'Outcome: Degraded',desc:'Guardian is unavailable. Scan can continue, mutation stops.',
+ steps:[
+  s(1,'Data Agent prepares action candidates',7,9,'Local write','action candidates','Data Agent','Working Store','Candidates staged','Analysis can continue.'),
+  s(2,'Guardian call fails',7,6,'POST /v1/decision/evaluate','action candidates','Data Agent','Guardian Agent','Unavailable','Decision service unavailable.'),
+  s(3,'Mutation path fails closed',6,7,'No action execution','guardian_status=down','Guardian/Orchestrator','Action Executor','No mutation','Avoids unsafe writes.'),
+  s(4,'Evidence records degraded path',7,10,'POST /v1/evidence/upload','GUARDIAN_DOWN, candidates','Data Agent','Evidence Store','Audit flag recorded','Customer sees why action stopped.')
+ ]},
+ agentFail:{label:'Agent Failure Recovery',sub:'Checkpoint / retry',type:'negative',outcome:'Outcome: Retry',desc:'Data Agent dies mid-scan; checkpoint and lease allow recovery.',
+ steps:[
+  s(1,'Batch scan starts',7,8,'Azure list/read metadata','batch_id, page token','Data Agent','Azure Blob','Batch in progress','Large scans run in chunks.'),
+  s(2,'Checkpoint written',7,9,'Local checkpoint','batch_id, last_marker','Data Agent','Working Store','Checkpoint saved','Prevents full restart.'),
+  s(3,'Heartbeat lost',7,2,'Lease heartbeat missed','lease_id','Control Plane','Data Agent','Lease expires','Control Plane detects issue.'),
+  s(4,'Resume or retry path',2,7,'Lease reassignment','checkpoint, retry_count','Control Plane','Data Agent','Retry execution','Recovery is controlled and auditable.')
+ ]},
+ permission:{label:'Permission Denied',sub:'403 / missing',type:'negative',outcome:'Outcome: Partial',desc:'Storage permission or container issue is recorded and user is guided to fix it.',
+ steps:[
+  s(1,'Connector tests source',7,8,'Azure Blob request','account, container, prefix','Data Agent','Azure Blob','403 / missing','Identifies source access issue.'),
+  s(2,'Scope is marked failed',7,9,'Local status update','source_id, error_code','Data Agent','Working Store','Partial failure','Other scopes can continue if safe.'),
+  s(3,'Evidence records error',7,10,'POST /v1/evidence/upload','error, scope, remediation hint','Evidence Publisher','Control Plane','Evidence recorded','QA/customer can verify failure handling.'),
+  s(4,'UI guides user',10,1,'GET /v1/evidence/summary','error state','Control Plane','UI','Fix source configuration','User gets next step.')
+ ]},
+ rate:{label:'Rate Limit / Retry',sub:'Backoff',type:'negative',outcome:'Outcome: Retry',desc:'Azure throttles requests; Data Agent backs off and preserves progress.',
+ steps:[
+  s(1,'Azure returns 429/503',8,7,'Azure response','retry-after','Azure Blob','Data Agent','Throttle detected','Protects source and agent.'),
+  s(2,'Backoff policy applied',7,7,'Local config','retry_after, retry_count','Data Agent','Batch Manager','Wait and retry','Controlled concurrency.'),
+  s(3,'Checkpoint preserved',7,9,'Local checkpoint','batch_id, marker','Data Agent','Working Store','Progress saved','No unnecessary repeat work.'),
+  s(4,'Audit event recorded',7,10,'POST /v1/evidence/upload','rate_limit event','Data Agent','Evidence Store','Retry proof','Customer sees resiliency behavior.')
+ ]}
+};
+function s(n,title,from,to,api,input,producer,consumer,output,why){return{n,title,from,to,api,input,producer,consumer,output,why}}
+
+const ops=[
+ ['Quick Scan','Metadata only','Reads names, size, type, tags, ACL signals.','Working Store → Evidence','Fast data footprint and risk visibility.'],
+ ['Smart Sample','Risk-prioritized sample','Samples likely risky objects for deeper review.','Working Store → Evidence','Balances speed and depth.'],
+ ['Deep Scan','Content inspection','Inspects allowed content samples and extracts signals.','Working Store → Evidence','Better confidence for remediation.'],
+ ['Classification','Sensitivity and policy match','Classifies objects against policy catalog.','Working Store → Guardian → Evidence','Fewer false positives and auditable output.']
+];
+const stores=[
+ ['Source Config / Control Records','Control Plane DB','Source, agent, job, lease, policy assignment.'],
+ ['Working Store / Normalized Objects','DuckDB / local transient store','Batch state, normalized objects, checkpoints.'],
+ ['Manifest Summary / Details','Evidence store','Per-execution scan proof.'],
+ ['Decision Provenance','Guardian-owned evidence','Policy hash, rules, reasoning, outcome.'],
+ ['Audit Events','Control Plane','Actor and system actions.'],
+ ['Exportable Evidence','Evidence package','Compliance and QA artifact.']
+];
+const responsibilities=[
+ ['Customer / Operator','Onboards source, runs scans, reviews findings.','User'],
+ ['Control Plane','Issues leases, stores jobs, status, audit summary.','Service'],
+ ['Data Agent Orchestrator','Receives request envelope, coordinates execution.','Service'],
+ ['Item 13 Resolver','Verifies policy artifact and LKG cache.','Service'],
+ ['Guardian Agent','Allows, reviews, or blocks actions.','Service'],
+ ['Connector Adapter','Talks to Azure Blob using normalized contract.','Service']
+];
+const qas=[
+ ['Where does Guardian sit?','Guardian sits in the runtime path before any mutation. Discovery and analysis can run under Orchestrator control, but writes cannot pass without Guardian allow/review/block decision.'],
+ ['What is zero-copy here?','Practical zero-copy means Everest does not create persistent full duplicate copies of customer files by default. It reads by reference, stream, range, cursor, or bounded preview and uploads findings/evidence.'],
+ ['Who updates the DB?','Control Plane updates the permanent system-of-record DB. Data Agent updates local working memory. Data Agent uploads evidence through approved APIs; connectors do not directly update Control Plane DB.'],
+ ['What is DuckDB used for?','DuckDB is transient local working memory for batch metadata, normalized signals, scoring, aggregation, and checkpoint-supporting summaries. It is not long-term raw content storage.'],
+ ['What goes to Elasticsearch?','Aggregated summary results, normalized signals, policy/action outcomes, and evidence/provenance references. Full raw content is not the default output.'],
+ ['What happens if Guardian is down?','Mutation fails closed. Scan can continue in dry-run/degraded mode if policy allows, but no destructive or mutating action executes. Audit records GUARDIAN_DOWN.'],
+ ['What happens if agent dies?','Lease heartbeat is lost, checkpoint remains, Control Plane can expire/reassign lease, and the next run resumes or retries from checkpoint.'],
+ ['How are large files handled?','Use batching, pagination, bounded reads, streaming/range reads, checkpointing, rate limiting, and controlled concurrency. Avoid one Control Plane API call per file.'],
+ ['What can AI do?','AI can recommend, explain, classify, extract features, and prefill HITL. AI cannot directly mutate customer data. Mutation requires Orchestrator and Guardian approval.'],
+ ['How do future connectors fit?','Azure Blob becomes one connector implementation behind a generic connector contract: discover, validate, scan, normalize, apply approved action, and return evidence.']
+];
+
+let current='happy',activeStep=0,playTimer=null;
+function esc(v){return String(v??'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'","&#039;")}
+function renderScenarios(){
+ const root=document.getElementById('scenarios');
+ root.innerHTML=Object.entries(scenarios).map(([k,x])=>`<button class="scenario ${x.type==='negative'?'negative':''} ${k===current?'active':''}" onclick="selectScenario('${k}')"><strong>${esc(x.label)}</strong><span>${esc(x.sub)}</span></button>`).join('');
+}
+function renderSwim(){
+ const sc=scenarios[current];
+ const head=`<div class="laneHead"><div>Step</div>${lanes.map((l,i)=>`<div>${i+1}<br>${esc(l)}</div>`).join('')}</div>`;
+ const rows=sc.steps.map((st,i)=>{
+   let cells=lanes.map((_,idx)=>{
+     let content='';
+     if(idx===st.from || idx===st.to){
+       content=`<div class="stepBox ${i===activeStep?'active':''}" onclick="inspect(${i})"><b>${idx===st.from?'Start':'Target'}</b><br>${esc(st.title)}<br><span class="muted">${esc(st.api)}</span></div>`;
+     } else if(idx>Math.min(st.from,st.to)&&idx<Math.max(st.from,st.to)){
+       content=`<div class="arrow ${sc.type==='negative'?'orange':'green'}"></div>`;
+     }
+     return `<div class="cell">${content}</div>`;
+   }).join('');
+   return `<div class="row ${sc.type==='negative'?'negative':''}"><div class="num"><span class="bubble">${st.n}</span></div>${cells}</div>`;
+ }).join('');
+ document.getElementById('swimlanes').innerHTML=head+rows;
+}
+function inspect(i){
+ activeStep=i;
+ const st=scenarios[current].steps[i];
+ document.getElementById('inspectTitle').textContent=`Inspect: Step ${st.n} — ${st.title}`;
+ document.getElementById('inspectContent').innerHTML=`
+ <div class="inspectCard"><h3>What user/system did</h3><p>${esc(st.title)}</p></div>
+ <div class="inspectCard"><h3>API called</h3><div class="pill blue">${esc(st.api)}</div></div>
+ <div class="inspectCard"><h3>Input</h3><p>${esc(st.input)}</p></div>
+ <div class="inspectCard"><h3>Producer / Owner</h3><div class="kv"><b>Producer</b><span>${esc(st.producer)}</span><b>Consumer</b><span>${esc(st.consumer)}</span></div></div>
+ <div class="inspectCard"><h3>Output / Expected result</h3><p>${esc(st.output)}</p></div>
+ <div class="inspectCard"><h3>Why it matters</h3><p>${esc(st.why)}</p></div>`;
+ renderSwim();
+}
+function selectScenario(k){
+ current=k; activeStep=0;
+ const sc=scenarios[k];
+ document.getElementById('scenarioTitle').textContent=sc.label+' — '+sc.sub;
+ document.getElementById('scenarioDesc').textContent=sc.desc;
+ const out=document.getElementById('scenarioOutcome'); out.textContent=sc.outcome; out.className='pill '+(sc.type==='negative'?'orange':'green');
+ renderScenarios();renderSwim();inspect(0);renderOutcomes();
+}
+function renderOps(){document.getElementById('ops').innerHTML=ops.map(o=>`<div class="op"><strong>${esc(o[0])}</strong><small>${esc(o[1])}</small><p><b>What:</b> ${esc(o[2])}</p><p><b>Where:</b> ${esc(o[3])}</p><p><b>Win:</b> ${esc(o[4])}</p></div>`).join('')}
+function renderOutcomes(){
+ const neg=scenarios[current].type==='negative';
+ const wins=neg?['Clear failure reason','No unsafe mutation','Audit trail preserved','Operator sees recovery path','Compliance proof remains intact']:['Fast data discovery','Governed and auditable scan','Lower compliance risk','Clear evidence for audit','Actionable next steps','AI-ready governed outputs'];
+ const risks=['Unauthorized data transfer','Policy violations and fines','Data leakage or reputational damage','Inaccurate analytics/AI','Manual effort and delays','Incomplete audit trail'];
+ document.getElementById('wins').innerHTML=wins.map(x=>`<li>✅ ${esc(x)}</li>`).join('');
+ document.getElementById('risks').innerHTML=risks.map(x=>`<li>⚠️ ${esc(x)}</li>`).join('');
+}
+function renderStores(){document.getElementById('stores').innerHTML=stores.map(s=>`<div class="storeItem"><div><b>${esc(s[0])}</b><div class="muted tiny">${esc(s[2])}</div></div><span class="pill purple">${esc(s[1])}</span></div>`).join('')}
+function renderResp(){document.getElementById('responsibilities').innerHTML=responsibilities.map(r=>`<div class="storeItem"><div><b>${esc(r[0])}</b><div class="muted tiny">${esc(r[1])}</div></div><span class="pill blue">${esc(r[2])}</span></div>`).join('')}
+function renderScale(){document.getElementById('scaleModel').innerHTML=`<div class="grid two"><div class="inspectCard"><h3>Synchronous</h3><ul class="list"><li>Health check</li><li>Source test</li><li>Container discovery</li><li>Job creation</li></ul></div><div class="inspectCard"><h3>Asynchronous</h3><ul class="list"><li>Scan execution</li><li>Batching</li><li>Evidence publishing</li><li>Large data processing</li></ul></div></div><div class="inspectCard"><h3>Scale guardrails</h3><p>Batch processing, checkpoints, retry/backoff, lease expiry, rate limits, and controlled parallelism.</p></div>`}
+function renderQas(){
+ document.getElementById('questions').innerHTML=qas.map((q,i)=>`<button class="${i===0?'active':''}" onclick="showAnswer(${i},this)">${esc(q[0])}</button>`).join('');
+ showAnswer(0,document.querySelector('#questions button'));
+}
+function showAnswer(i,btn){document.querySelectorAll('#questions button').forEach(b=>b.classList.remove('active'));btn?.classList.add('active');document.getElementById('answer').innerHTML=`<h3>${esc(qas[i][0])}</h3><p>${esc(qas[i][1])}</p>`}
+function setRole(role){document.querySelectorAll('.role').forEach(b=>b.classList.remove('active'));document.querySelector(`[data-role="${role}"]`).classList.add('active');}
+function play(){clearInterval(playTimer);let i=0;inspect(0);playTimer=setInterval(()=>{i++; if(i>=scenarios[current].steps.length){clearInterval(playTimer);return} inspect(i)},1200)}
+function resetView(){clearInterval(playTimer);selectScenario('happy')}
+renderScenarios();renderSwim();inspect(0);renderOps();renderOutcomes();renderStores();renderResp();renderScale();renderQas();
+</script>
+</body>
+</html>

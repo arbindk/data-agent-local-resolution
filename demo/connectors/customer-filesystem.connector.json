@@ -1,0 +1,113 @@
+{
+  "connector_id": "customer-filesystem",
+  "display_name": "Customer Filesystem Connector",
+  "connector_type": "customer_filesystem",
+  "vendor": "Customer",
+  "version": "0.1.0",
+  "status": "custom_manifest",
+  "description": "Example customer-owned connector manifest for private network or air-gapped file repositories.",
+  "deployment_modes": ["private_network", "air_gapped"],
+  "network_modes": ["local_mount", "offline_policy_bundle"],
+  "runtime": {
+    "kind": "external_process_or_http",
+    "entrypoint": "connectors/customer-filesystem/customer-filesystem.exe",
+    "protocol": "connector_manifest_v1",
+    "health_check": "healthz",
+    "platforms": ["windows"]
+  },
+  "auth_schemes": [
+    {
+      "scheme": "windows_service_account",
+      "display_name": "Windows service account",
+      "secret_fields": ["username", "password"],
+      "offline_ready": true
+    }
+  ],
+  "config_fields": [
+    {
+      "name": "root_path",
+      "label": "Root path",
+      "type": "text",
+      "required": true,
+      "description": "Mounted path or local directory visible to the Data Agent."
+    },
+    {
+      "name": "include_patterns",
+      "label": "Include patterns",
+      "type": "text",
+      "required": false
+    }
+  ],
+  "capabilities": {
+    "discover_sources": true,
+    "scan_metadata": true,
+    "content_sampling": true,
+    "permissions_read": true,
+    "apply_metadata": false,
+    "apply_native_tags": false,
+    "archive": true,
+    "retrieve": true,
+    "quarantine": true,
+    "copy_or_migrate": true,
+    "delete": true,
+    "customer_extensible": true,
+    "supported_object_types": ["file", "folder", "share"]
+  },
+  "actions": [
+    {
+      "action_id": "metadata_scan",
+      "display_name": "Metadata scan",
+      "mode": "read_only",
+      "requires_guardian": false,
+      "requires_hitl": false,
+      "supported_modes": ["dry_run", "apply"]
+    },
+    {
+      "action_id": "quarantine",
+      "display_name": "Move to quarantine",
+      "mode": "restricted_writeback",
+      "requires_guardian": true,
+      "requires_hitl": true,
+      "confirmation": "APPLY",
+      "supported_modes": ["dry_run", "apply"]
+    },
+    {
+      "action_id": "delete",
+      "display_name": "Delete file",
+      "mode": "destructive_writeback",
+      "requires_guardian": true,
+      "requires_hitl": true,
+      "confirmation": "DELETE",
+      "supported_modes": ["dry_run", "apply"]
+    }
+  ],
+  "object_model": {
+    "file_id_format": "customer_filesystem:{share}:{native_path}",
+    "required_fields": ["file_id", "data_store_id", "path", "name", "size_bytes", "source_system", "permission_risk_score"],
+    "optional_fields": ["content_type", "extension", "last_modified", "owner", "acl_hash"],
+    "native_attributes": ["share", "path", "owner", "acl"]
+  },
+  "ai": {
+    "recommendation_supported": true,
+    "auto_submit_hitl": true,
+    "autonomous_apply": false,
+    "allowed_ai_actions": ["recommend", "prefill_action", "submit_hitl_approval"]
+  },
+  "security": {
+    "secrets_in_credential_manager": true,
+    "no_inbound_required": true,
+    "air_gap_notes": [
+      "Runtime is installed locally by the customer.",
+      "Policy and connector manifest are imported from an offline bundle."
+    ],
+    "data_residency_notes": [
+      "Normalized metadata remains local until customer exports or syncs evidence."
+    ]
+  },
+  "support": {
+    "owner": "customer",
+    "support_level": "contract_validated",
+    "test_requirements": ["manifest validation", "health command", "sample normalized batch", "dry-run action proof"],
+    "customer_owned_code": true
+  }
+}

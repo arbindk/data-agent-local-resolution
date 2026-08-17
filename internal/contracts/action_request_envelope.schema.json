@@ -1,0 +1,117 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ActionRequestEnvelope",
+  "type": "object",
+  "required": [
+    "request_id",
+    "tenant_id",
+    "actor",
+    "source_id",
+    "connector_id",
+    "operation",
+    "scope",
+    "policy_context",
+    "correlation_id"
+  ],
+  "properties": {
+    "request_id": { "type": "string" },
+    "tenant_id": { "type": "string" },
+    "actor": {
+      "type": "object",
+      "required": ["id"],
+      "properties": {
+        "id": { "type": "string" },
+        "email": { "type": "string" },
+        "role": { "type": "string" },
+        "auth_type": { "type": "string" },
+        "client_id": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "source_id": { "type": "string" },
+    "connector_id": { "type": "string" },
+    "operation": { "type": "string" },
+    "scope": {
+      "type": "object",
+      "properties": {
+        "source_id": { "type": "string" },
+        "container": { "type": "string" },
+        "prefix": { "type": "string" },
+        "object_refs": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/object_ref" }
+        },
+        "target_refs": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/object_ref" }
+        },
+        "limit": { "type": "integer" },
+        "batch_id": { "type": "string" },
+        "filters": {
+          "type": "object",
+          "additionalProperties": { "type": "string" }
+        },
+        "boundary": { "type": "string" },
+        "zero_copy_mode": { "type": "string" }
+      },
+      "additionalProperties": true
+    },
+    "policy_context": { "$ref": "#/$defs/policy_context" },
+    "runtime_context": { "$ref": "#/$defs/runtime_context" },
+    "correlation_id": { "type": "string" },
+    "idempotency_key": { "type": "string" },
+    "requested_at": { "type": "string", "format": "date-time" },
+    "metadata": {
+      "type": "object",
+      "additionalProperties": { "type": "string" }
+    }
+  },
+  "$defs": {
+    "object_ref": {
+      "type": "object",
+      "properties": {
+        "uri": { "type": "string" },
+        "connector_id": { "type": "string" },
+        "source_id": { "type": "string" },
+        "container": { "type": "string" },
+        "path": { "type": "string" },
+        "version_id": { "type": "string" },
+        "etag": { "type": "string" },
+        "size_bytes": { "type": "integer" },
+        "content_type": { "type": "string" },
+        "region": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "policy_context": {
+      "type": "object",
+      "properties": {
+        "policy_id": { "type": "string" },
+        "policy_bundle_version": { "type": "string" },
+        "policy_bundle_hash": { "type": "string" },
+        "workflow_version": { "type": "string" },
+        "ruleset_ids": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      },
+      "additionalProperties": false
+    },
+    "runtime_context": {
+      "type": "object",
+      "properties": {
+        "environment": { "type": "string" },
+        "region": { "type": "string" },
+        "data_boundary": { "type": "string" },
+        "action_mode": { "type": "string" },
+        "processing_tier": { "type": "string" },
+        "processing_mode": { "type": "string" },
+        "local_execution_required": { "type": "boolean" },
+        "zero_copy_required": { "type": "boolean" },
+        "air_gapped": { "type": "boolean" }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": true
+}

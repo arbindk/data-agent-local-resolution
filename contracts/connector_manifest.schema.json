@@ -1,0 +1,170 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://everest.local/contracts/connector_manifest.schema.json",
+  "title": "Everest Connector Manifest",
+  "type": "object",
+  "required": [
+    "connector_id",
+    "display_name",
+    "connector_type",
+    "version",
+    "deployment_modes",
+    "runtime",
+    "capabilities",
+    "actions",
+    "object_model"
+  ],
+  "properties": {
+    "connector_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9_-]{2,63}$"
+    },
+    "display_name": { "type": "string" },
+    "connector_type": { "type": "string" },
+    "vendor": { "type": "string" },
+    "version": { "type": "string" },
+    "status": {
+      "type": "string",
+      "enum": ["available", "planned", "custom_manifest", "disabled"]
+    },
+    "description": { "type": "string" },
+    "deployment_modes": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": ["cloud_connected", "private_network", "air_gapped", "hybrid"]
+      },
+      "minItems": 1
+    },
+    "network_modes": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "runtime": {
+      "type": "object",
+      "required": ["kind"],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": ["builtin", "external_process", "http", "external_process_or_http"]
+        },
+        "entrypoint": { "type": "string" },
+        "protocol": { "type": "string" },
+        "health_check": { "type": "string" },
+        "platforms": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "auth_schemes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["scheme", "display_name"],
+        "properties": {
+          "scheme": { "type": "string" },
+          "display_name": { "type": "string" },
+          "secret_fields": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "offline_ready": { "type": "boolean" }
+        }
+      }
+    },
+    "config_fields": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "label", "type", "required"],
+        "properties": {
+          "name": { "type": "string" },
+          "label": { "type": "string" },
+          "type": { "type": "string" },
+          "required": { "type": "boolean" },
+          "secret": { "type": "boolean" },
+          "options": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "description": { "type": "string" }
+        }
+      }
+    },
+    "capabilities": {
+      "type": "object",
+      "properties": {
+        "discover_sources": { "type": "boolean" },
+        "scan_metadata": { "type": "boolean" },
+        "content_sampling": { "type": "boolean" },
+        "permissions_read": { "type": "boolean" },
+        "apply_metadata": { "type": "boolean" },
+        "apply_native_tags": { "type": "boolean" },
+        "archive": { "type": "boolean" },
+        "retrieve": { "type": "boolean" },
+        "quarantine": { "type": "boolean" },
+        "copy_or_migrate": { "type": "boolean" },
+        "delete": { "type": "boolean" },
+        "customer_extensible": { "type": "boolean" },
+        "supported_object_types": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "actions": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["action_id", "display_name", "mode"],
+        "properties": {
+          "action_id": { "type": "string" },
+          "display_name": { "type": "string" },
+          "mode": { "type": "string" },
+          "requires_guardian": { "type": "boolean" },
+          "requires_hitl": { "type": "boolean" },
+          "confirmation": { "type": "string" },
+          "supported_modes": {
+            "type": "array",
+            "items": { "type": "string" }
+          }
+        }
+      }
+    },
+    "object_model": {
+      "type": "object",
+      "required": ["file_id_format", "required_fields"],
+      "properties": {
+        "file_id_format": { "type": "string" },
+        "required_fields": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "optional_fields": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "native_attributes": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "ai": {
+      "type": "object",
+      "properties": {
+        "recommendation_supported": { "type": "boolean" },
+        "auto_submit_hitl": { "type": "boolean" },
+        "autonomous_apply": { "type": "boolean" },
+        "allowed_ai_actions": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "security": { "type": "object" },
+    "support": { "type": "object" }
+  }
+}

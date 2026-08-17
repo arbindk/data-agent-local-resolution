@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://everest.local/contracts/ai_provider_response.schema.json",
+  "title": "Everest AI Provider Runtime Response",
+  "type": "object",
+  "required": ["status", "provider_id", "task", "contract_version"],
+  "properties": {
+    "status": {
+      "type": "string",
+      "enum": ["ok", "blocked", "failed", "needs_configuration"]
+    },
+    "provider_id": { "type": "string" },
+    "provider_type": { "type": "string" },
+    "task": { "type": "string" },
+    "model": { "type": "string" },
+    "runtime_kind": { "type": "string" },
+    "runtime_protocol": { "type": "string" },
+    "invocation_id": { "type": "string" },
+    "output": { "type": "string" },
+    "recommendations": { "type": "array", "items": { "type": "object" } },
+    "classifications": { "type": "array", "items": { "type": "object" } },
+    "summary": { "type": "string" },
+    "prompt_audit": {
+      "type": "object",
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "evidence_grounded": { "type": "boolean" },
+        "redaction_mode": { "type": "string" },
+        "customer_prompt_sent": { "type": "boolean" },
+        "customer_data_boundary": { "type": "string" }
+      }
+    },
+    "controls": { "type": "array", "items": { "type": "string" } },
+    "checks": { "type": "array", "items": { "type": "object" } },
+    "raw": {},
+    "started_at": { "type": "string" },
+    "completed_at": { "type": "string" },
+    "duration_ms": { "type": "integer" },
+    "error": { "type": "string" },
+    "contract_version": { "type": "string", "const": "ai_provider_runtime_v1" }
+  }
+}

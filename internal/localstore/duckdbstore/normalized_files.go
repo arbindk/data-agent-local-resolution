@@ -157,10 +157,6 @@ func (s *Store) LoadNormalizedBatch(ctx context.Context, batchID string) (*contr
 		return nil, fmt.Errorf("iterate normalized files: %w", err)
 	}
 
-	if len(batch.Records) == 0 {
-		return nil, fmt.Errorf("no normalized records found for batch_id=%s", batchID)
-	}
-
 	return batch, nil
 }
 

@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://everest.local/contracts/connector_runtime_response.schema.json",
+  "title": "Everest Connector Runtime Response",
+  "type": "object",
+  "required": ["status", "connector_id", "operation", "contract_version"],
+  "properties": {
+    "status": {
+      "type": "string",
+      "enum": ["ok", "planned", "blocked", "failed", "needs_configuration", "native_runtime"]
+    },
+    "connector_id": { "type": "string" },
+    "operation": { "type": "string" },
+    "runtime_kind": { "type": "string" },
+    "runtime_protocol": { "type": "string" },
+    "invocation_id": { "type": "string" },
+    "safe_mode": { "type": "boolean" },
+    "dry_run": { "type": "boolean" },
+    "applied": { "type": "boolean" },
+    "records": { "type": "array", "items": {} },
+    "normalized_batch": { "type": "object" },
+    "action_result": { "type": "object" },
+    "checks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": { "type": "string" },
+          "result": { "type": "string" },
+          "detail": { "type": "string" }
+        }
+      }
+    },
+    "raw": {},
+    "started_at": { "type": "string" },
+    "completed_at": { "type": "string" },
+    "duration_ms": { "type": "integer" },
+    "error": { "type": "string" },
+    "contract_version": { "type": "string", "const": "connector_runtime_v1" },
+    "execution_control": { "type": "array", "items": { "type": "string" } }
+  }
+}

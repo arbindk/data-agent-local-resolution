@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://everest.local/contracts/ai_provider_request.schema.json",
+  "title": "Everest AI Provider Runtime Request",
+  "type": "object",
+  "required": ["provider_id", "task"],
+  "properties": {
+    "runtime_request_id": { "type": "string" },
+    "provider_id": { "type": "string" },
+    "task": {
+      "type": "string",
+      "enum": ["chat", "classification", "summarization", "policy_explanation", "recommend_actions", "hitl_request_prefill"]
+    },
+    "prompt": { "type": "string" },
+    "model": { "type": "string" },
+    "runtime_endpoint": { "type": "string" },
+    "automation_mode": {
+      "type": "string",
+      "enum": ["recommend_only", "submit_hitl_approvals"]
+    },
+    "redaction_mode": {
+      "type": "string",
+      "enum": ["metadata_only", "mask_sensitive", "none"]
+    },
+    "prompt_audit": { "type": "boolean" },
+    "evidence_grounding": { "type": "boolean" },
+    "timeout_seconds": { "type": "integer", "minimum": 1, "maximum": 120 },
+    "context": { "type": "object" },
+    "evidence": { "type": "array", "items": { "type": "object" } },
+    "messages": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["role", "content"],
+        "properties": {
+          "role": { "type": "string" },
+          "content": { "type": "string" }
+        }
+      }
+    }
+  }
+}

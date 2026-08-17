@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "MVS Preconfigured Workflow",
+  "type": "object",
+  "required": ["workflow_version", "steps"],
+  "properties": {
+    "workflow_version": {"type": "string"},
+    "workflow_type": {"type": "string", "const": "mvs_linear"},
+    "steps": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "owner", "required"],
+        "properties": {
+          "name": {"type": "string"},
+          "owner": {"type": "string"},
+          "required": {"type": "boolean"},
+          "degraded_behavior": {"type": "string"}
+        }
+      }
+    }
+  },
+  "additionalProperties": false
+}
